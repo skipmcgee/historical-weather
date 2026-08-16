@@ -1,8 +1,18 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
 import '../models/location.dart';
+
+/// Open-Meteo's archive endpoint has a noticeable cold-cache penalty: the
+/// first request for a given location/date-range combo can take several
+/// seconds, even though the payload itself is tiny (a few KB) and repeat
+/// requests come back in well under a second regardless of how many
+/// variables are requested. That's server-side and out of our control, but
+/// a hang shouldn't be indefinite -- this bounds it so a genuinely stuck
+/// request fails with a clear message instead of spinning forever.
+const _requestTimeout = Duration(seconds: 25);
 
 /// The daily archive variables we request and then average client-side.
 const List<String> dailyArchiveVariables = [
@@ -71,7 +81,7 @@ class OpenMeteoService {
       }),
     );
 
-    final response = await _client.get(uri);
+    final response = await _get(uri);
     if (response.statusCode != 200) {
       throw OpenMeteoException('Location search failed (HTTP ${response.statusCode}).');
     }
@@ -104,7 +114,7 @@ class OpenMeteoService {
       }),
     );
 
-    final response = await _client.get(uri);
+    final response = await _get(uri);
     if (response.statusCode != 200) {
       final body = _tryDecode(response.body);
       final reason = body?['reason'] as String?;
@@ -114,6 +124,16 @@ class OpenMeteoService {
     }
 
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<http.Response> _get(Uri uri) async {
+    try {
+      return await _client.get(uri).timeout(_requestTimeout);
+    } on TimeoutException {
+      throw OpenMeteoException(
+        'Open-Meteo took too long to respond (>${_requestTimeout.inSeconds}s). Try again in a moment.',
+      );
+    }
   }
 
   Map<String, dynamic>? _tryDecode(String body) {

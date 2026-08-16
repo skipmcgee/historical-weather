@@ -178,9 +178,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.air, size: 24),
-                    label: const Text('Summon the median historical weather data'),
+                    label: Text(
+                      _loading ? 'Summoning the winds…' : 'Summon the median historical weather data',
+                    ),
                   ),
                 ),
+                if (_loading) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Asking Open-Meteo for historical data — first-time lookups for a location/'
+                    'range can take a few seconds; repeats are much faster.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
                 if (_error != null) ...[
                   const SizedBox(height: 16),
                   Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
