@@ -9,10 +9,14 @@ import '../models/location.dart';
 /// first request for a given location/date-range combo can take several
 /// seconds, even though the payload itself is tiny (a few KB) and repeat
 /// requests come back in well under a second regardless of how many
-/// variables are requested. That's server-side and out of our control, but
-/// a hang shouldn't be indefinite -- this bounds it so a genuinely stuck
-/// request fails with a clear message instead of spinning forever.
-const _requestTimeout = Duration(seconds: 25);
+/// variables are requested. That's server-side and out of our control, and
+/// it scales badly for very large spans: an 86-year range with the full
+/// variable set measured here actually got a 504 from Open-Meteo's own
+/// nginx after 10 minutes. 60s is a compromise -- generous enough that a
+/// legitimately slow-but-working multi-decade query isn't cut off
+/// prematurely (25s was, in practice), while still failing in bounded time
+/// rather than matching Open-Meteo's own multi-minute ceiling.
+const _requestTimeout = Duration(seconds: 60);
 
 /// The daily archive variables we request and then average client-side.
 const List<String> dailyArchiveVariables = [
@@ -83,7 +87,7 @@ class OpenMeteoService {
 
     final response = await _get(uri);
     if (response.statusCode != 200) {
-      throw OpenMeteoException('Location search failed (HTTP ${response.statusCode}).');
+      throw OpenMeteoException(_errorMessage(response, 'Location search failed'));
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -116,14 +120,20 @@ class OpenMeteoService {
 
     final response = await _get(uri);
     if (response.statusCode != 200) {
-      final body = _tryDecode(response.body);
-      final reason = body?['reason'] as String?;
-      throw OpenMeteoException(
-        reason ?? 'Historical weather request failed (HTTP ${response.statusCode}).',
-      );
+      throw OpenMeteoException(_errorMessage(response, 'Historical weather request failed'));
     }
 
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Open-Meteo puts a human-readable explanation in a `reason` field on
+  /// error responses -- including rate limiting ("Hourly API request limit
+  /// exceeded...") -- so surface that verbatim whenever it's present rather
+  /// than just the HTTP status code.
+  String _errorMessage(http.Response response, String fallback) {
+    final reason = _tryDecode(response.body)?['reason'] as String?;
+    if (reason != null && reason.isNotEmpty) return reason;
+    return '$fallback (HTTP ${response.statusCode}).';
   }
 
   Future<http.Response> _get(Uri uri) async {
@@ -131,7 +141,9 @@ class OpenMeteoService {
       return await _client.get(uri).timeout(_requestTimeout);
     } on TimeoutException {
       throw OpenMeteoException(
-        'Open-Meteo took too long to respond (>${_requestTimeout.inSeconds}s). Try again in a moment.',
+        'Open-Meteo took too long to respond (>${_requestTimeout.inSeconds}s). Very long date '
+        'ranges (many decades) can be genuinely slow on their end -- try a shorter range, or try '
+        'again in a moment.',
       );
     }
   }
