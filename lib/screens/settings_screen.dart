@@ -74,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 GlassCard(
                   child: Column(
@@ -115,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Result defaults', style: Theme.of(context).textTheme.titleMedium),
+                      Text('Units', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 4),
                       Text(
                         'Used to prefill each lookup; can still be overridden per-query on the '
