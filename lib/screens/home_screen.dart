@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/app_settings.dart';
 import '../models/location.dart';
 import '../models/weather_summary.dart';
+import '../services/archive_cache_service.dart';
 import '../services/device_location_service.dart';
 import '../services/open_meteo_service.dart';
 import '../services/settings_service.dart';
@@ -29,6 +30,7 @@ DateTime _todayDateOnly() {
 class _HomeScreenState extends State<HomeScreen> {
   final _service = OpenMeteoService();
   final _settingsService = SettingsService();
+  final _cache = ArchiveCacheService();
 
   Location? _location;
   DateTime? _startDate;
@@ -78,14 +80,23 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final raw = await _service.fetchDailyArchive(
-        location: _location!,
-        startDate: _startDate!,
-        endDate: _endDate!,
-      );
-      final daily = raw['daily'] as Map<String, dynamic>?;
+      var daily = await _cache.lookup(location: _location!, start: _startDate!, end: _endDate!);
       if (daily == null) {
-        throw OpenMeteoException('No daily data returned for this location/date range.');
+        final raw = await _service.fetchDailyArchive(
+          location: _location!,
+          startDate: _startDate!,
+          endDate: _endDate!,
+        );
+        daily = raw['daily'] as Map<String, dynamic>?;
+        if (daily == null) {
+          throw OpenMeteoException('No daily data returned for this location/date range.');
+        }
+        await _cache.store(
+          location: _location!,
+          start: _startDate!,
+          end: _endDate!,
+          daily: daily,
+        );
       }
       final summary = aggregateDailyArchive(
         location: _location!,
@@ -156,16 +167,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
+                  height: 56,
                   child: FilledButton.icon(
                     onPressed: _canSubmit && !_loading ? _submit : null,
+                    style: FilledButton.styleFrom(textStyle: const TextStyle(fontSize: 17)),
                     icon: _loading
                         ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.air),
-                    label: const Text('Summon the winds'),
+                        : const Icon(Icons.air, size: 24),
+                    label: const Text('Summon the median historical weather data'),
                   ),
                 ),
                 if (_error != null) ...[

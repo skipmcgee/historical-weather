@@ -1,22 +1,24 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_settings.dart';
 import '../models/location.dart';
+import 'key_value_store.dart';
 
-/// Loads/saves [AppSettings] to local on-device storage.
+/// Loads/saves [AppSettings] to local storage (see [createKeyValueStore]
+/// for why that means something different on web than on a native install).
 class SettingsService {
   static const _apiKeyKey = 'open_meteo_api_key';
   static const _defaultLocationKey = 'default_location';
   static const _themeModeKey = 'theme_mode';
 
+  final KeyValueStore _store = createKeyValueStore();
+
   Future<AppSettings> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final apiKey = prefs.getString(_apiKeyKey);
-    final locationJson = prefs.getString(_defaultLocationKey);
-    final themeModeName = prefs.getString(_themeModeKey);
+    final apiKey = await _store.getString(_apiKeyKey);
+    final locationJson = await _store.getString(_defaultLocationKey);
+    final themeModeName = await _store.getString(_themeModeKey);
 
     Location? defaultLocation;
     if (locationJson != null) {
@@ -35,21 +37,19 @@ class SettingsService {
   }
 
   Future<void> save(AppSettings settings) async {
-    final prefs = await SharedPreferences.getInstance();
-
     if (settings.apiKey == null || settings.apiKey!.isEmpty) {
-      await prefs.remove(_apiKeyKey);
+      await _store.remove(_apiKeyKey);
     } else {
-      await prefs.setString(_apiKeyKey, settings.apiKey!);
+      await _store.setString(_apiKeyKey, settings.apiKey!);
     }
 
     if (settings.defaultLocation == null) {
-      await prefs.remove(_defaultLocationKey);
+      await _store.remove(_defaultLocationKey);
     } else {
-      await prefs.setString(_defaultLocationKey, jsonEncode(settings.defaultLocation!.toJson()));
+      await _store.setString(_defaultLocationKey, jsonEncode(settings.defaultLocation!.toJson()));
     }
 
-    await prefs.setString(_themeModeKey, settings.themeMode.name);
+    await _store.setString(_themeModeKey, settings.themeMode.name);
   }
 
   ThemeMode _themeModeFromName(String? name) {

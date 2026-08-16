@@ -21,6 +21,8 @@ void main() {
         'snowfall_sum': [0.0, 0.0, 0.0],
         'wind_speed_10m_max': [10.0, 20.0, 30.0],
         'wind_gusts_10m_max': [15.0, 25.0, 35.0],
+        'wind_direction_10m_dominant': [80.0, 90.0, 100.0],
+        'relative_humidity_2m_mean': [70.0, 80.0, 90.0],
         'shortwave_radiation_sum': [5.0, 6.0, 7.0],
         'sunshine_duration': [3600.0, 7200.0, 10800.0],
       },
@@ -37,10 +39,41 @@ void main() {
     expect(summary.totalSnowfallCm, closeTo(0.0, 1e-9));
     expect(summary.medianWindSpeedMaxKmh, closeTo(20.0, 1e-9));
     expect(summary.medianWindGustsMaxKmh, closeTo(25.0, 1e-9));
+    // [80, 90, 100] is symmetric around 90 -> circular mean is exactly 90.
+    expect(summary.medianWindDirectionDeg, closeTo(90.0, 1e-6));
+    expect(summary.medianRelativeHumidityPercent, closeTo(80.0, 1e-9));
     expect(summary.medianShortwaveRadiationMjm2, closeTo(6.0, 1e-9));
     // sunshine_duration is in seconds; median of 1h/2h/3h -> 2 hours.
     expect(summary.medianSunshineHours, closeTo(2.0, 1e-9));
     expect(summary.hasAnyData, isTrue);
+  });
+
+  test('wind direction is averaged circularly, not numerically', () {
+    final wrapped = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: end,
+      daily: {
+        'time': ['2020-01-01', '2020-01-02'],
+        // A plain numeric mean/median of [350, 10] gives 180 (due south) --
+        // the correct circular average, wrapping across 0/360, is ~0 (north).
+        'wind_direction_10m_dominant': [350.0, 10.0],
+      },
+    );
+    expect(wrapped.medianWindDirectionDeg, closeTo(0.0, 1e-6));
+
+    final opposite = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: end,
+      daily: {
+        'time': ['2020-01-01', '2020-01-02'],
+        // Directly opposite directions cancel out -> no representative
+        // single direction, so this should be null rather than a guess.
+        'wind_direction_10m_dominant': [0.0, 180.0],
+      },
+    );
+    expect(opposite.medianWindDirectionDeg, isNull);
   });
 
   test('median of an even number of days averages the two middle values', () {

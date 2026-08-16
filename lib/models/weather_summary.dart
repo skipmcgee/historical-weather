@@ -5,7 +5,10 @@ import 'location.dart';
 /// means) are used for the per-day metrics so a handful of extreme days
 /// don't skew the "typical" values shown to the user; the precipitation/
 /// snowfall totals are plain sums, since a total over the period is what
-/// makes sense there.
+/// makes sense there. [medianWindDirectionDeg] is the one exception: wind
+/// direction is circular (0deg and 360deg are the same heading), so a plain
+/// numeric median would be meaningless — it's aggregated as a circular mean
+/// instead, which is the standard way to average a direction.
 class WeatherSummary {
   WeatherSummary({
     required this.location,
@@ -21,6 +24,8 @@ class WeatherSummary {
     this.totalSnowfallCm,
     this.medianWindSpeedMaxKmh,
     this.medianWindGustsMaxKmh,
+    this.medianWindDirectionDeg,
+    this.medianRelativeHumidityPercent,
     this.medianShortwaveRadiationMjm2,
     this.medianSunshineHours,
   });
@@ -39,6 +44,8 @@ class WeatherSummary {
   final double? totalSnowfallCm;
   final double? medianWindSpeedMaxKmh;
   final double? medianWindGustsMaxKmh;
+  final double? medianWindDirectionDeg;
+  final double? medianRelativeHumidityPercent;
   final double? medianShortwaveRadiationMjm2;
   final double? medianSunshineHours;
 
@@ -55,6 +62,8 @@ class WeatherSummary {
     totalSnowfallCm,
     medianWindSpeedMaxKmh,
     medianWindGustsMaxKmh,
+    medianWindDirectionDeg,
+    medianRelativeHumidityPercent,
     medianShortwaveRadiationMjm2,
     medianSunshineHours,
   ].any((v) => v != null);
@@ -88,9 +97,13 @@ class WeatherSummary {
       'snowfall_cm': {
         'total': totalSnowfallCm,
       },
-      'wind_kmh': {
-        'median_max_speed': medianWindSpeedMaxKmh,
-        'median_max_gusts': medianWindGustsMaxKmh,
+      'humidity_percent': {
+        'median': medianRelativeHumidityPercent,
+      },
+      'wind': {
+        'median_max_speed_kmh': medianWindSpeedMaxKmh,
+        'median_max_gusts_kmh': medianWindGustsMaxKmh,
+        'median_direction_deg': medianWindDirectionDeg,
       },
       'sun': {
         'median_shortwave_radiation_mj_m2': medianShortwaveRadiationMjm2,
