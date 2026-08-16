@@ -18,20 +18,25 @@ class WeatherSummaryView extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final metrics = <(IconData, String, String, Color)>[
-      (Icons.thermostat, 'Avg high', _fmt(summary.avgHighC, '°C'), scheme.primary),
-      (Icons.thermostat, 'Avg low', _fmt(summary.avgLowC, '°C'), scheme.primary),
-      (Icons.thermostat, 'Avg mean', _fmt(summary.avgMeanC, '°C'), scheme.primary),
+      (Icons.thermostat, 'Median high', _fmt(summary.medianHighC, '°C'), scheme.primary),
+      (Icons.thermostat, 'Median low', _fmt(summary.medianLowC, '°C'), scheme.primary),
+      (Icons.thermostat, 'Median mean', _fmt(summary.medianMeanC, '°C'), scheme.primary),
       (Icons.water_drop, 'Total precipitation', _fmt(summary.totalPrecipitationMm, 'mm'), scheme.secondary),
       (
         Icons.water_drop_outlined,
-        'Avg precipitation/day',
-        _fmt(summary.avgPrecipitationMm, 'mm'),
+        'Median precipitation/day',
+        _fmt(summary.medianPrecipitationMm, 'mm'),
         scheme.secondary,
       ),
       (Icons.ac_unit, 'Total snowfall', _fmt(summary.totalSnowfallCm, 'cm'), scheme.secondary),
-      (Icons.air, 'Avg max wind speed', _fmt(summary.avgWindSpeedMaxKmh, 'km/h'), scheme.tertiary),
-      (Icons.cyclone, 'Avg max wind gusts', _fmt(summary.avgWindGustsMaxKmh, 'km/h'), scheme.tertiary),
-      (Icons.wb_sunny, 'Avg sunshine', _fmt(summary.avgSunshineHours, 'hrs'), scheme.primary),
+      (Icons.air, 'Median max wind speed', _fmt(summary.medianWindSpeedMaxKmh, 'km/h'), scheme.tertiary),
+      (
+        Icons.cyclone,
+        'Median max wind gusts',
+        _fmt(summary.medianWindGustsMaxKmh, 'km/h'),
+        scheme.tertiary,
+      ),
+      (Icons.wb_sunny, 'Median sunshine', _fmt(summary.medianSunshineHours, 'hrs'), scheme.primary),
     ];
 
     return GlassCard(

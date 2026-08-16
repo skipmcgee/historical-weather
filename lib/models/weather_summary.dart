@@ -1,24 +1,28 @@
 import 'location.dart';
 
-/// Averaged/summed historical weather for a location over a date range,
-/// computed from Open-Meteo's daily archive values.
+/// Median/summed historical weather for a location over a date range,
+/// computed from Open-Meteo's daily archive values. Medians (rather than
+/// means) are used for the per-day metrics so a handful of extreme days
+/// don't skew the "typical" values shown to the user; the precipitation/
+/// snowfall totals are plain sums, since a total over the period is what
+/// makes sense there.
 class WeatherSummary {
   WeatherSummary({
     required this.location,
     required this.startDate,
     required this.endDate,
     required this.dayCount,
-    this.avgHighC,
-    this.avgLowC,
-    this.avgMeanC,
+    this.medianHighC,
+    this.medianLowC,
+    this.medianMeanC,
     this.totalPrecipitationMm,
-    this.avgPrecipitationMm,
+    this.medianPrecipitationMm,
     this.totalRainMm,
     this.totalSnowfallCm,
-    this.avgWindSpeedMaxKmh,
-    this.avgWindGustsMaxKmh,
-    this.avgShortwaveRadiationMjm2,
-    this.avgSunshineHours,
+    this.medianWindSpeedMaxKmh,
+    this.medianWindGustsMaxKmh,
+    this.medianShortwaveRadiationMjm2,
+    this.medianSunshineHours,
   });
 
   final Location location;
@@ -26,17 +30,34 @@ class WeatherSummary {
   final DateTime endDate;
   final int dayCount;
 
-  final double? avgHighC;
-  final double? avgLowC;
-  final double? avgMeanC;
+  final double? medianHighC;
+  final double? medianLowC;
+  final double? medianMeanC;
   final double? totalPrecipitationMm;
-  final double? avgPrecipitationMm;
+  final double? medianPrecipitationMm;
   final double? totalRainMm;
   final double? totalSnowfallCm;
-  final double? avgWindSpeedMaxKmh;
-  final double? avgWindGustsMaxKmh;
-  final double? avgShortwaveRadiationMjm2;
-  final double? avgSunshineHours;
+  final double? medianWindSpeedMaxKmh;
+  final double? medianWindGustsMaxKmh;
+  final double? medianShortwaveRadiationMjm2;
+  final double? medianSunshineHours;
+
+  /// False when every metric came back null — e.g. a date range Open-Meteo
+  /// simply has no data for. Callers should treat this as "no data found"
+  /// rather than rendering a card full of dashes.
+  bool get hasAnyData => [
+    medianHighC,
+    medianLowC,
+    medianMeanC,
+    totalPrecipitationMm,
+    medianPrecipitationMm,
+    totalRainMm,
+    totalSnowfallCm,
+    medianWindSpeedMaxKmh,
+    medianWindGustsMaxKmh,
+    medianShortwaveRadiationMjm2,
+    medianSunshineHours,
+  ].any((v) => v != null);
 
   static String _isoDate(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -55,25 +76,25 @@ class WeatherSummary {
         'day_count': dayCount,
       },
       'temperature_c': {
-        'avg_high': avgHighC,
-        'avg_low': avgLowC,
-        'avg_mean': avgMeanC,
+        'median_high': medianHighC,
+        'median_low': medianLowC,
+        'median_mean': medianMeanC,
       },
       'precipitation_mm': {
         'total': totalPrecipitationMm,
-        'avg_per_day': avgPrecipitationMm,
+        'median_per_day': medianPrecipitationMm,
         'total_rain': totalRainMm,
       },
       'snowfall_cm': {
         'total': totalSnowfallCm,
       },
       'wind_kmh': {
-        'avg_max_speed': avgWindSpeedMaxKmh,
-        'avg_max_gusts': avgWindGustsMaxKmh,
+        'median_max_speed': medianWindSpeedMaxKmh,
+        'median_max_gusts': medianWindGustsMaxKmh,
       },
       'sun': {
-        'avg_shortwave_radiation_mj_m2': avgShortwaveRadiationMjm2,
-        'avg_sunshine_hours': avgSunshineHours,
+        'median_shortwave_radiation_mj_m2': medianShortwaveRadiationMjm2,
+        'median_sunshine_hours': medianSunshineHours,
       },
       'source': 'Open-Meteo Historical Weather API (archive-api.open-meteo.com)',
     };

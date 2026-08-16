@@ -2,8 +2,13 @@ import '../models/location.dart';
 import '../models/weather_summary.dart';
 
 /// Turns the raw `daily` block of an Open-Meteo archive response into a
-/// [WeatherSummary] by averaging/summing over all days present. Missing
-/// (null) values for a given day are skipped rather than treated as zero.
+/// [WeatherSummary]. Per-day metrics use the median (not the mean) so a
+/// handful of outlier days don't skew the "typical" value shown to the
+/// user; precipitation/snowfall totals are sums. Missing (null) values for
+/// a given day are skipped rather than treated as zero — data coverage
+/// varies across the archive (older dates use a coarser reanalysis model,
+/// and the most recent few days may not be processed yet), so this keeps
+/// results meaningful regardless of which date range was requested.
 WeatherSummary aggregateDailyArchive({
   required Location location,
   required DateTime startDate,
@@ -33,17 +38,17 @@ WeatherSummary aggregateDailyArchive({
     startDate: startDate,
     endDate: endDate,
     dayCount: times.length,
-    avgHighC: _average(highs),
-    avgLowC: _average(lows),
-    avgMeanC: dailyMeans.isEmpty ? null : _sum(dailyMeans) / dailyMeans.length,
+    medianHighC: _median(highs),
+    medianLowC: _median(lows),
+    medianMeanC: _median(dailyMeans.map((v) => v as double?).toList()),
     totalPrecipitationMm: _sumOrNull(precipitation),
-    avgPrecipitationMm: _average(precipitation),
+    medianPrecipitationMm: _median(precipitation),
     totalRainMm: _sumOrNull(rain),
     totalSnowfallCm: _sumOrNull(snowfall),
-    avgWindSpeedMaxKmh: _average(windSpeedMax),
-    avgWindGustsMaxKmh: _average(windGustsMax),
-    avgShortwaveRadiationMjm2: _average(shortwaveRadiation),
-    avgSunshineHours: _average(sunshineDurationSeconds, scale: 1 / 3600),
+    medianWindSpeedMaxKmh: _median(windSpeedMax),
+    medianWindGustsMaxKmh: _median(windGustsMax),
+    medianShortwaveRadiationMjm2: _median(shortwaveRadiation),
+    medianSunshineHours: _median(sunshineDurationSeconds, scale: 1 / 3600),
   );
 }
 
@@ -59,8 +64,10 @@ double? _sumOrNull(List<double?> values) {
   return present.isEmpty ? null : _sum(present);
 }
 
-double? _average(List<double?> values, {double scale = 1}) {
-  final present = values.whereType<double>();
+double? _median(List<double?> values, {double scale = 1}) {
+  final present = values.whereType<double>().toList()..sort();
   if (present.isEmpty) return null;
-  return (_sum(present) / present.length) * scale;
+  final mid = present.length ~/ 2;
+  final median = present.length.isOdd ? present[mid] : (present[mid - 1] + present[mid]) / 2;
+  return median * scale;
 }

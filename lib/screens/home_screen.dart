@@ -88,6 +88,11 @@ class _HomeScreenState extends State<HomeScreen> {
         endDate: _endDate!,
         daily: daily,
       );
+      if (!summary.hasAnyData) {
+        throw OpenMeteoException(
+          'Open-Meteo has no historical data for this location and date range.',
+        );
+      }
       setState(() => _summary = summary);
     } catch (e) {
       setState(() => _error = '$e');

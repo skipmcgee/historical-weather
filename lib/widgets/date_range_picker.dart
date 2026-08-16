@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Open-Meteo's archive switches to a higher-resolution model starting on
-/// this date; earlier data uses a coarser, differently-formatted source, so
-/// the app only supports dates on/after this cutoff.
-final DateTime earliestSupportedDate = DateTime(2017, 1, 1);
+/// Open-Meteo's archive (ERA5 reanalysis) goes back to 1940; that's the
+/// practical floor for the date picker.
+final DateTime earliestSupportedDate = DateTime(1940, 1, 1);
 
 class DateRangePicker extends StatelessWidget {
   const DateRangePicker({
@@ -49,8 +48,9 @@ class DateRangePicker extends StatelessWidget {
         Text('Date range', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(
-          'Only ${_format(earliestSupportedDate)} onward is supported '
-          '(Open-Meteo switched to a higher-resolution model in 2017).',
+          'Data is available from ${_format(earliestSupportedDate)} onward. Note that '
+          'Open-Meteo switched to a higher-resolution model in 2017, so earlier years use a '
+          'coarser data source.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
