@@ -23,7 +23,7 @@ void main() {
   testWidgets('submit button stays disabled until a location and dates are chosen', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
 
-    final button = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Get historical weather'));
+    final button = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Summon the winds'));
     expect(button.onPressed, isNull);
   });
 }

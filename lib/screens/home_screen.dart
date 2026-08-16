@@ -7,6 +7,7 @@ import '../services/device_location_service.dart';
 import '../services/open_meteo_service.dart';
 import '../services/settings_service.dart';
 import '../services/weather_aggregator.dart';
+import '../widgets/aeolus_scaffold.dart';
 import '../widgets/date_range_picker.dart';
 import '../widgets/json_output_panel.dart';
 import '../widgets/location_picker.dart';
@@ -110,17 +111,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Historical Weather'),
-        actions: [
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings),
-            onPressed: _openSettings,
-          ),
-        ],
-      ),
+    return AeolusScaffold(
+      title: 'Historical Weather',
+      actions: [
+        IconButton(
+          tooltip: 'Settings',
+          icon: const Icon(Icons.tune),
+          onPressed: _openSettings,
+        ),
+      ],
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
@@ -147,15 +146,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
+                  child: FilledButton.icon(
                     onPressed: _canSubmit && !_loading ? _submit : null,
-                    child: _loading
+                    icon: _loading
                         ? const SizedBox(
-                            width: 20,
-                            height: 20,
+                            width: 18,
+                            height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Get historical weather'),
+                        : const Icon(Icons.air),
+                    label: const Text('Summon the winds'),
                   ),
                 ),
                 if (_error != null) ...[

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/weather_summary.dart';
+import 'glass_card.dart';
 
 class WeatherSummaryView extends StatelessWidget {
   const WeatherSummaryView({super.key, required this.summary});
@@ -15,58 +16,68 @@ class WeatherSummaryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final metrics = <(IconData, String, String)>[
-      (Icons.thermostat, 'Avg high', _fmt(summary.avgHighC, '°C')),
-      (Icons.thermostat, 'Avg low', _fmt(summary.avgLowC, '°C')),
-      (Icons.thermostat, 'Avg mean', _fmt(summary.avgMeanC, '°C')),
-      (Icons.water_drop, 'Total precipitation', _fmt(summary.totalPrecipitationMm, 'mm')),
-      (Icons.water_drop_outlined, 'Avg precipitation/day', _fmt(summary.avgPrecipitationMm, 'mm')),
-      (Icons.ac_unit, 'Total snowfall', _fmt(summary.totalSnowfallCm, 'cm')),
-      (Icons.air, 'Avg max wind speed', _fmt(summary.avgWindSpeedMaxKmh, 'km/h')),
-      (Icons.air, 'Avg max wind gusts', _fmt(summary.avgWindGustsMaxKmh, 'km/h')),
-      (Icons.wb_sunny, 'Avg sunshine', _fmt(summary.avgSunshineHours, 'hrs')),
+    final scheme = Theme.of(context).colorScheme;
+    final metrics = <(IconData, String, String, Color)>[
+      (Icons.thermostat, 'Avg high', _fmt(summary.avgHighC, '°C'), scheme.primary),
+      (Icons.thermostat, 'Avg low', _fmt(summary.avgLowC, '°C'), scheme.primary),
+      (Icons.thermostat, 'Avg mean', _fmt(summary.avgMeanC, '°C'), scheme.primary),
+      (Icons.water_drop, 'Total precipitation', _fmt(summary.totalPrecipitationMm, 'mm'), scheme.secondary),
+      (
+        Icons.water_drop_outlined,
+        'Avg precipitation/day',
+        _fmt(summary.avgPrecipitationMm, 'mm'),
+        scheme.secondary,
+      ),
+      (Icons.ac_unit, 'Total snowfall', _fmt(summary.totalSnowfallCm, 'cm'), scheme.secondary),
+      (Icons.air, 'Avg max wind speed', _fmt(summary.avgWindSpeedMaxKmh, 'km/h'), scheme.tertiary),
+      (Icons.cyclone, 'Avg max wind gusts', _fmt(summary.avgWindGustsMaxKmh, 'km/h'), scheme.tertiary),
+      (Icons.wb_sunny, 'Avg sunshine', _fmt(summary.avgSunshineHours, 'hrs'), scheme.primary),
     ];
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(summary.location.displayLabel, style: textTheme.titleLarge),
-            Text(
-              '${_isoDate(summary.startDate)} — ${_isoDate(summary.endDate)} '
-              '(${summary.dayCount} days)',
-              style: textTheme.bodyMedium,
-            ),
-            const Divider(height: 24),
-            Wrap(
-              spacing: 16,
-              runSpacing: 12,
-              children: [
-                for (final (icon, label, value) in metrics)
-                  SizedBox(
-                    width: 220,
-                    child: Row(
-                      children: [
-                        Icon(icon, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(label, style: textTheme.bodySmall),
-                              Text(value, style: textTheme.titleMedium),
-                            ],
-                          ),
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.cyclone, color: scheme.primary, size: 22),
+              const SizedBox(width: 8),
+              Expanded(child: Text(summary.location.displayLabel, style: textTheme.titleLarge)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_isoDate(summary.startDate)} — ${_isoDate(summary.endDate)} '
+            '(${summary.dayCount} days)',
+            style: textTheme.bodyMedium,
+          ),
+          const Divider(height: 24),
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: [
+              for (final (icon, label, value, color) in metrics)
+                SizedBox(
+                  width: 220,
+                  child: Row(
+                    children: [
+                      Icon(icon, size: 20, color: color),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(label, style: textTheme.bodySmall),
+                            Text(value, style: textTheme.titleMedium),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-              ],
-            ),
-          ],
-        ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
