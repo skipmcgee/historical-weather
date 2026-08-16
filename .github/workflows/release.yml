@@ -129,3 +129,33 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: historical-weather-ios-unsigned.zip
+
+  dependabot-merge:
+    # Auto-approve and merge Dependabot PRs once every build job above has
+    # passed -- patch/minor updates only; major version bumps still land as
+    # regular PRs for manual review. This repo's private-plan tier doesn't
+    # expose GitHub's native "Allow auto-merge" toggle (same restriction as
+    # branch protection), so this merges directly instead of deferring to
+    # that feature. Dependabot pushes branches into this repo directly
+    # (it's not a fork), so the default GITHUB_TOKEN already has the write
+    # access this needs without requiring `pull_request_target`.
+    needs: [test, build-web, build-linux, build-macos, build-ios]
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Approve and merge
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
