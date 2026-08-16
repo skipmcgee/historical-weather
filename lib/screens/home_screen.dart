@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/aggregation_method.dart';
 import '../models/app_settings.dart';
 import '../models/location.dart';
+import '../models/unit_system.dart';
 import '../models/weather_summary.dart';
 import '../services/archive_cache_service.dart';
 import '../services/device_location_service.dart';
@@ -35,6 +37,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Location? _location;
   DateTime? _startDate;
   DateTime? _endDate = _todayDateOnly();
+  AggregationMethod _method = AggregationMethod.median;
+  UnitSystem _unitSystem = UnitSystem.imperial;
 
   bool _loading = false;
   String? _error;
@@ -72,6 +76,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _settings = settings;
       _location ??= initialLocation;
+      _method = settings.aggregationMethod;
+      _unitSystem = settings.unitSystem;
     });
   }
 
@@ -120,12 +126,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         await _cache.store(location: _location!, start: _startDate!, end: _endDate!, daily: daily);
       }
 
-      if (mounted) setState(() => _loadingStage = 'Computing medians…');
+      if (mounted) {
+        setState(() => _loadingStage = 'Computing ${_method == AggregationMethod.median ? 'medians' : 'averages'}…');
+      }
       final summary = aggregateDailyArchive(
         location: _location!,
         startDate: _startDate!,
         endDate: _endDate!,
         daily: daily,
+        method: _method,
       );
       if (!summary.hasAnyData) {
         throw OpenMeteoException(
@@ -155,6 +164,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _settings = result;
       _service.apiKey = result.apiKey;
       _location ??= result.defaultLocation;
+      _method = result.aggregationMethod;
+      _unitSystem = result.unitSystem;
     });
   }
 
@@ -218,7 +229,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   }),
                   onEndDateChanged: (date) => setState(() => _endDate = date),
                 ),
-                const SizedBox(height: 24),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: _method == AggregationMethod.average,
+                  onChanged: _loading
+                      ? null
+                      : (checked) => setState(() {
+                            _method = (checked ?? false) ? AggregationMethod.average : AggregationMethod.median;
+                          }),
+                  title: const Text('Use average instead of median'),
+                  subtitle: const Text(
+                    'Median (default) resists a few extreme days skewing the result; average is the literal mean.',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text('Units', style: Theme.of(context).textTheme.bodyMedium),
+                    const SizedBox(width: 12),
+                    SegmentedButton<UnitSystem>(
+                      segments: const [
+                        ButtonSegment(value: UnitSystem.imperial, label: Text('Imperial')),
+                        ButtonSegment(value: UnitSystem.metric, label: Text('Metric')),
+                      ],
+                      selected: {_unitSystem},
+                      onSelectionChanged: _loading
+                          ? null
+                          : (selection) => setState(() => _unitSystem = selection.first),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -233,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           )
                         : const Icon(Icons.air, size: 24),
                     label: Text(
-                      _loading ? 'Summoning the winds…' : 'Summon the median historical weather data',
+                      _loading ? 'Summoning the winds…' : 'Summon the historical weather data',
                     ),
                   ),
                 ),
@@ -250,9 +292,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ],
                 if (_summary != null) ...[
                   const SizedBox(height: 24),
-                  WeatherSummaryView(summary: _summary!),
+                  WeatherSummaryView(summary: _summary!, unitSystem: _unitSystem),
                   const SizedBox(height: 16),
-                  JsonOutputPanel(data: _summary!.toJson()),
+                  JsonOutputPanel(data: _summary!.toJson(unitSystem: _unitSystem)),
                 ],
                 const SizedBox(height: 32),
               ],

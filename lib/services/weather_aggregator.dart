@@ -1,21 +1,23 @@
 import 'dart:math' as math;
 
+import '../models/aggregation_method.dart';
 import '../models/location.dart';
 import '../models/weather_summary.dart';
 
 /// Turns the raw `daily` block of an Open-Meteo archive response into a
-/// [WeatherSummary]. Per-day metrics use the median (not the mean) so a
-/// handful of outlier days don't skew the "typical" value shown to the
-/// user; precipitation/snowfall totals are sums. Missing (null) values for
-/// a given day are skipped rather than treated as zero — data coverage
-/// varies across the archive (older dates use a coarser reanalysis model,
-/// and the most recent few days may not be processed yet), so this keeps
-/// results meaningful regardless of which date range was requested.
+/// [WeatherSummary], collapsing each per-day metric via [method] (median or
+/// mean). Precipitation/snowfall/ET0 totals are always sums regardless of
+/// [method]. Missing (null) values for a given day are skipped rather than
+/// treated as zero — data coverage varies across the archive (older dates
+/// use a coarser reanalysis model, and the most recent few days may not be
+/// processed yet), so this keeps results meaningful regardless of which
+/// date range was requested.
 WeatherSummary aggregateDailyArchive({
   required Location location,
   required DateTime startDate,
   required DateTime endDate,
   required Map<String, dynamic> daily,
+  required AggregationMethod method,
 }) {
   final times = (daily['time'] as List<dynamic>? ?? const []);
   final highs = _doubles(daily['temperature_2m_max']);
@@ -47,35 +49,39 @@ WeatherSummary aggregateDailyArchive({
     if (high != null && low != null) dailyMeans.add((high + low) / 2);
   }
 
+  double? central(List<double?> values, {double scale = 1}) =>
+      _central(values, method, scale: scale);
+
   return WeatherSummary(
     location: location,
     startDate: startDate,
     endDate: endDate,
     dayCount: times.length,
-    medianHighC: _median(highs),
-    medianLowC: _median(lows),
-    medianMeanC: _median(dailyMeans.map((v) => v as double?).toList()),
+    method: method,
+    highC: central(highs),
+    lowC: central(lows),
+    meanC: central(dailyMeans.map((v) => v as double?).toList()),
     totalPrecipitationMm: _sumOrNull(precipitation),
-    medianPrecipitationMm: _median(precipitation),
+    precipitationPerDayMm: central(precipitation),
     totalRainMm: _sumOrNull(rain),
     totalSnowfallCm: _sumOrNull(snowfall),
-    medianWindSpeedMaxKmh: _median(windSpeedMax),
-    medianWindGustsMaxKmh: _median(windGustsMax),
-    medianWindDirectionDeg: _circularMeanDegrees(windDirection),
-    medianRelativeHumidityPercent: _median(relativeHumidity),
-    medianDewPointC: _median(dewPoint),
-    medianCloudCoverPercent: _median(cloudCover),
-    medianSurfacePressureHpa: _median(surfacePressure),
-    medianShortwaveRadiationMjm2: _median(shortwaveRadiation),
-    medianSunshineHours: _median(sunshineDurationSeconds, scale: 1 / 3600),
+    windSpeedMaxKmh: central(windSpeedMax),
+    windGustsMaxKmh: central(windGustsMax),
+    windDirectionDeg: _circularMeanDegrees(windDirection),
+    relativeHumidityPercent: central(relativeHumidity),
+    dewPointC: central(dewPoint),
+    cloudCoverPercent: central(cloudCover),
+    surfacePressureHpa: central(surfacePressure),
+    shortwaveRadiationMjm2: central(shortwaveRadiation),
+    sunshineHours: central(sunshineDurationSeconds, scale: 1 / 3600),
     totalEt0Mm: _sumOrNull(et0),
-    medianEt0MmPerDay: _median(et0),
-    medianSoilMoisture0To7cm: _median(soilMoisture0To7),
-    medianSoilMoisture7To28cm: _median(soilMoisture7To28),
-    medianSoilMoisture28To100cm: _median(soilMoisture28To100),
-    medianSoilTemp0To7cmC: _median(soilTemp0To7),
-    medianSoilTemp7To28cmC: _median(soilTemp7To28),
-    medianSoilTemp28To100cmC: _median(soilTemp28To100),
+    et0MmPerDay: central(et0),
+    soilMoisture0To7cm: central(soilMoisture0To7),
+    soilMoisture7To28cm: central(soilMoisture7To28),
+    soilMoisture28To100cm: central(soilMoisture28To100),
+    soilTemp0To7cmC: central(soilTemp0To7),
+    soilTemp7To28cmC: central(soilTemp7To28),
+    soilTemp28To100cmC: central(soilTemp28To100),
   );
 }
 
@@ -91,6 +97,10 @@ double? _sumOrNull(List<double?> values) {
   return present.isEmpty ? null : _sum(present);
 }
 
+double? _central(List<double?> values, AggregationMethod method, {double scale = 1}) {
+  return method == AggregationMethod.median ? _median(values, scale: scale) : _mean(values, scale: scale);
+}
+
 double? _median(List<double?> values, {double scale = 1}) {
   final present = values.whereType<double>().toList()..sort();
   if (present.isEmpty) return null;
@@ -99,11 +109,20 @@ double? _median(List<double?> values, {double scale = 1}) {
   return median * scale;
 }
 
+double? _mean(List<double?> values, {double scale = 1}) {
+  final present = values.whereType<double>();
+  if (present.isEmpty) return null;
+  return (_sum(present) / present.length) * scale;
+}
+
 /// Averages a set of compass directions (degrees) via vector sum rather
 /// than a plain numeric median/mean — 350deg and 10deg should average to
 /// ~0deg, not 180deg. Returns null if the vectors cancel out exactly
 /// (e.g. an even split between opposite directions), since no single
-/// direction is representative in that case.
+/// direction is representative in that case. Not affected by
+/// [AggregationMethod]: this is the only sensible way to average a
+/// direction, regardless of whether the rest of the summary uses medians
+/// or means.
 double? _circularMeanDegrees(List<double?> values) {
   final present = values.whereType<double>();
   if (present.isEmpty) return null;

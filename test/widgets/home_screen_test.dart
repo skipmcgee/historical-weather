@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:historical_weather/models/unit_system.dart';
 import 'package:historical_weather/screens/home_screen.dart';
 import 'package:historical_weather/widgets/date_range_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,8 +29,35 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
 
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Summon the median historical weather data'),
+      find.widgetWithText(FilledButton, 'Summon the historical weather data'),
     );
     expect(button.onPressed, isNull);
+  });
+
+  testWidgets('aggregation method checkbox defaults to unchecked (median)', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await tester.pump();
+
+    final checkbox = tester.widget<CheckboxListTile>(find.byType(CheckboxListTile));
+    expect(checkbox.value, isFalse);
+  });
+
+  testWidgets('tapping the aggregation checkbox switches to average', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await tester.pump();
+
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pump();
+
+    final checkbox = tester.widget<CheckboxListTile>(find.byType(CheckboxListTile));
+    expect(checkbox.value, isTrue);
+  });
+
+  testWidgets('unit system toggle defaults to imperial', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await tester.pump();
+
+    final segmented = tester.widget<SegmentedButton<UnitSystem>>(find.byType(SegmentedButton<UnitSystem>));
+    expect(segmented.selected, {UnitSystem.imperial});
   });
 }

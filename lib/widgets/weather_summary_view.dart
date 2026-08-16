@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../models/unit_system.dart';
 import '../models/weather_summary.dart';
 import 'glass_card.dart';
 
 typedef _Metric = (IconData icon, String label, String value, Color color);
 
 class WeatherSummaryView extends StatelessWidget {
-  const WeatherSummaryView({super.key, required this.summary});
+  const WeatherSummaryView({super.key, required this.summary, required this.unitSystem});
 
   final WeatherSummary summary;
+  final UnitSystem unitSystem;
 
   String _fmt(double? value, String unit, {int decimals = 1}) {
     if (value == null) return '—';
@@ -30,82 +32,90 @@ class WeatherSummaryView extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final m = summary.method.label;
+    final u = unitSystem;
+
+    String temp(double? c, {int decimals = 1}) => _fmt(u.convertTemperatureC(c), u.temperatureUnit, decimals: decimals);
+    String mm(double? v, {int decimals = 2}) => _fmt(u.convertMm(v), u.precipitationUnit, decimals: decimals);
+    String cm(double? v) => _fmt(u.convertCm(v), u.snowfallUnit, decimals: 2);
+    String kmh(double? v) => _fmt(u.convertKmh(v), u.windSpeedUnit);
+    String hpa(double? v) => _fmt(u.convertHpa(v), u.pressureUnit, decimals: 2);
 
     final temperature = <_Metric>[
-      (Icons.thermostat, 'Median high', _fmt(summary.medianHighC, '°C'), scheme.primary),
-      (Icons.thermostat, 'Median low', _fmt(summary.medianLowC, '°C'), scheme.primary),
-      (Icons.thermostat, 'Median mean', _fmt(summary.medianMeanC, '°C'), scheme.primary),
+      (Icons.thermostat, '$m high', temp(summary.highC), scheme.primary),
+      (Icons.thermostat, '$m low', temp(summary.lowC), scheme.primary),
+      (Icons.thermostat, '$m mean', temp(summary.meanC), scheme.primary),
     ];
 
     final precipitation = <_Metric>[
-      (Icons.water_drop, 'Total precipitation', _fmt(summary.totalPrecipitationMm, 'mm'), scheme.secondary),
+      (Icons.water_drop, 'Total precipitation', mm(summary.totalPrecipitationMm), scheme.secondary),
       (
         Icons.water_drop_outlined,
-        'Median precipitation/day',
-        _fmt(summary.medianPrecipitationMm, 'mm'),
+        '$m precipitation/day',
+        mm(summary.precipitationPerDayMm, decimals: 3),
         scheme.secondary,
       ),
-      (Icons.ac_unit, 'Total snowfall', _fmt(summary.totalSnowfallCm, 'cm'), scheme.secondary),
+      (Icons.ac_unit, 'Total snowfall', cm(summary.totalSnowfallCm), scheme.secondary),
     ];
 
     final atmosphere = <_Metric>[
       (
         Icons.opacity,
-        'Median relative humidity',
-        _fmt(summary.medianRelativeHumidityPercent, '%', decimals: 0),
+        '$m relative humidity',
+        _fmt(summary.relativeHumidityPercent, '%', decimals: 0),
         scheme.secondary,
       ),
-      (Icons.water, 'Median dew point', _fmt(summary.medianDewPointC, '°C'), scheme.secondary),
+      (Icons.water, '$m dew point', temp(summary.dewPointC), scheme.secondary),
       (
         Icons.cloud,
-        'Median cloud cover',
-        _fmt(summary.medianCloudCoverPercent, '%', decimals: 0),
+        '$m cloud cover',
+        _fmt(summary.cloudCoverPercent, '%', decimals: 0),
         scheme.secondary,
       ),
       (
         Icons.speed,
-        'Median surface pressure',
-        _fmt(summary.medianSurfacePressureHpa, 'hPa', decimals: 0),
+        '$m surface pressure',
+        hpa(summary.surfacePressureHpa),
         scheme.secondary,
       ),
     ];
 
     final wind = <_Metric>[
-      (Icons.air, 'Median max wind speed', _fmt(summary.medianWindSpeedMaxKmh, 'km/h'), scheme.tertiary),
+      (Icons.air, '$m max wind speed', kmh(summary.windSpeedMaxKmh), scheme.tertiary),
       (
         Icons.cyclone,
-        'Median max wind gusts',
-        _fmt(summary.medianWindGustsMaxKmh, 'km/h'),
+        '$m max wind gusts',
+        kmh(summary.windGustsMaxKmh),
         scheme.tertiary,
       ),
       (
         Icons.navigation,
-        'Median wind direction',
-        _fmtDirection(summary.medianWindDirectionDeg),
+        'Wind direction',
+        _fmtDirection(summary.windDirectionDeg),
         scheme.tertiary,
       ),
     ];
 
     final sun = <_Metric>[
-      (Icons.wb_sunny, 'Median sunshine', _fmt(summary.medianSunshineHours, 'hrs'), scheme.primary),
+      (Icons.wb_sunny, '$m sunshine', _fmt(summary.sunshineHours, 'hrs'), scheme.primary),
       (
         Icons.wb_twilight,
-        'Median solar radiation',
-        _fmt(summary.medianShortwaveRadiationMjm2, 'MJ/m²'),
+        '$m solar radiation',
+        _fmt(summary.shortwaveRadiationMjm2, 'MJ/m²'),
         scheme.primary,
       ),
       (
         Icons.grass,
         'Total evapotranspiration',
-        _fmt(summary.totalEt0Mm, 'mm'),
+        mm(summary.totalEt0Mm),
         scheme.primary,
       ),
     ];
 
     final soilRows = [
-      ('0–7 cm', summary.medianSoilMoisture0To7cm, summary.medianSoilTemp0To7cmC),
-      ('7–28 cm', summary.medianSoilMoisture7To28cm, summary.medianSoilTemp7To28cmC),
-      ('28–100 cm', summary.medianSoilMoisture28To100cm, summary.medianSoilTemp28To100cmC),
+      ('0–7 cm', summary.soilMoisture0To7cm, summary.soilTemp0To7cmC),
+      ('7–28 cm', summary.soilMoisture7To28cm, summary.soilTemp7To28cmC),
+      ('28–100 cm', summary.soilMoisture28To100cm, summary.soilTemp28To100cmC),
     ];
     final hasSoilData = soilRows.any((r) => r.$2 != null || r.$3 != null);
 
@@ -123,7 +133,7 @@ class WeatherSummaryView extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '${_isoDate(summary.startDate)} — ${_isoDate(summary.endDate)} '
-            '(${summary.dayCount} days)',
+            '(${summary.dayCount} days, $m, ${u.label.toLowerCase()})',
             style: textTheme.bodyMedium,
           ),
           _section(context, 'Temperature', temperature),
@@ -211,7 +221,7 @@ class WeatherSummaryView extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
-                child: Text(_fmt(temp, '°C'), style: textTheme.titleMedium),
+                child: Text(_fmt(unitSystem.convertTemperatureC(temp), unitSystem.temperatureUnit), style: textTheme.titleMedium),
               ),
             ],
           ),

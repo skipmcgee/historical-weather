@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:historical_weather/models/aggregation_method.dart';
 import 'package:historical_weather/models/location.dart';
 import 'package:historical_weather/services/weather_aggregator.dart';
 
@@ -12,6 +13,7 @@ void main() {
       location: location,
       startDate: start,
       endDate: end,
+      method: AggregationMethod.median,
       daily: {
         'time': ['2020-01-01', '2020-01-02', '2020-01-03'],
         'temperature_2m_max': [10.0, 12.0, 14.0],
@@ -29,23 +31,86 @@ void main() {
     );
 
     expect(summary.dayCount, 3);
-    expect(summary.medianHighC, closeTo(12.0, 1e-9));
-    expect(summary.medianLowC, closeTo(2.0, 1e-9));
-    expect(summary.medianMeanC, closeTo(7.0, 1e-9));
+    expect(summary.method, AggregationMethod.median);
+    expect(summary.highC, closeTo(12.0, 1e-9));
+    expect(summary.lowC, closeTo(2.0, 1e-9));
+    expect(summary.meanC, closeTo(7.0, 1e-9));
     expect(summary.totalPrecipitationMm, closeTo(4.0, 1e-9));
     // Sorted [0, 1, 3] -> median is the middle value, 1.0 (not the mean, 4/3).
-    expect(summary.medianPrecipitationMm, closeTo(1.0, 1e-9));
+    expect(summary.precipitationPerDayMm, closeTo(1.0, 1e-9));
     expect(summary.totalRainMm, closeTo(4.0, 1e-9));
     expect(summary.totalSnowfallCm, closeTo(0.0, 1e-9));
-    expect(summary.medianWindSpeedMaxKmh, closeTo(20.0, 1e-9));
-    expect(summary.medianWindGustsMaxKmh, closeTo(25.0, 1e-9));
+    expect(summary.windSpeedMaxKmh, closeTo(20.0, 1e-9));
+    expect(summary.windGustsMaxKmh, closeTo(25.0, 1e-9));
     // [80, 90, 100] is symmetric around 90 -> circular mean is exactly 90.
-    expect(summary.medianWindDirectionDeg, closeTo(90.0, 1e-6));
-    expect(summary.medianRelativeHumidityPercent, closeTo(80.0, 1e-9));
-    expect(summary.medianShortwaveRadiationMjm2, closeTo(6.0, 1e-9));
+    expect(summary.windDirectionDeg, closeTo(90.0, 1e-6));
+    expect(summary.relativeHumidityPercent, closeTo(80.0, 1e-9));
+    expect(summary.shortwaveRadiationMjm2, closeTo(6.0, 1e-9));
     // sunshine_duration is in seconds; median of 1h/2h/3h -> 2 hours.
-    expect(summary.medianSunshineHours, closeTo(2.0, 1e-9));
+    expect(summary.sunshineHours, closeTo(2.0, 1e-9));
     expect(summary.hasAnyData, isTrue);
+  });
+
+  test('AggregationMethod.average uses the arithmetic mean instead of the median', () {
+    final daily = {
+      'time': ['2020-01-01', '2020-01-02', '2020-01-03'],
+      // Sorted [0, 1, 20]: median is 1.0, but the mean is 7.0 -- a single
+      // outlier day should only move the average, not the median.
+      'precipitation_sum': [1.0, 0.0, 20.0],
+      'temperature_2m_max': [10.0, 12.0, 100.0],
+    };
+
+    final median = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: end,
+      method: AggregationMethod.median,
+      daily: daily,
+    );
+    final average = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: end,
+      method: AggregationMethod.average,
+      daily: daily,
+    );
+
+    expect(median.method, AggregationMethod.median);
+    expect(median.precipitationPerDayMm, closeTo(1.0, 1e-9));
+    expect(median.highC, closeTo(12.0, 1e-9));
+
+    expect(average.method, AggregationMethod.average);
+    expect(average.precipitationPerDayMm, closeTo(7.0, 1e-9));
+    expect(average.highC, closeTo((10.0 + 12.0 + 100.0) / 3, 1e-9));
+
+    // Totals are sums regardless of method -- unaffected by the choice.
+    expect(median.totalPrecipitationMm, closeTo(21.0, 1e-9));
+    expect(average.totalPrecipitationMm, closeTo(21.0, 1e-9));
+  });
+
+  test('wind direction is always a circular mean, regardless of AggregationMethod', () {
+    final daily = {
+      'time': ['2020-01-01', '2020-01-02'],
+      'wind_direction_10m_dominant': [350.0, 10.0],
+    };
+
+    final median = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: end,
+      method: AggregationMethod.median,
+      daily: daily,
+    );
+    final average = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: end,
+      method: AggregationMethod.average,
+      daily: daily,
+    );
+
+    expect(median.windDirectionDeg, closeTo(0.0, 1e-6));
+    expect(average.windDirectionDeg, closeTo(0.0, 1e-6));
   });
 
   test('computes atmosphere, evapotranspiration, and soil metrics', () {
@@ -53,6 +118,7 @@ void main() {
       location: location,
       startDate: start,
       endDate: end,
+      method: AggregationMethod.median,
       daily: {
         'time': ['2020-01-01', '2020-01-02', '2020-01-03'],
         'dew_point_2m_mean': [10.0, 12.0, 14.0],
@@ -68,17 +134,17 @@ void main() {
       },
     );
 
-    expect(summary.medianDewPointC, closeTo(12.0, 1e-9));
-    expect(summary.medianCloudCoverPercent, closeTo(50.0, 1e-9));
-    expect(summary.medianSurfacePressureHpa, closeTo(1010.0, 1e-9));
+    expect(summary.dewPointC, closeTo(12.0, 1e-9));
+    expect(summary.cloudCoverPercent, closeTo(50.0, 1e-9));
+    expect(summary.surfacePressureHpa, closeTo(1010.0, 1e-9));
     expect(summary.totalEt0Mm, closeTo(6.0, 1e-9));
-    expect(summary.medianEt0MmPerDay, closeTo(2.0, 1e-9));
-    expect(summary.medianSoilMoisture0To7cm, closeTo(0.32, 1e-9));
-    expect(summary.medianSoilMoisture7To28cm, closeTo(0.36, 1e-9));
-    expect(summary.medianSoilMoisture28To100cm, closeTo(0.40, 1e-9));
-    expect(summary.medianSoilTemp0To7cmC, closeTo(16.0, 1e-9));
-    expect(summary.medianSoilTemp7To28cmC, closeTo(14.5, 1e-9));
-    expect(summary.medianSoilTemp28To100cmC, closeTo(13.0, 1e-9));
+    expect(summary.et0MmPerDay, closeTo(2.0, 1e-9));
+    expect(summary.soilMoisture0To7cm, closeTo(0.32, 1e-9));
+    expect(summary.soilMoisture7To28cm, closeTo(0.36, 1e-9));
+    expect(summary.soilMoisture28To100cm, closeTo(0.40, 1e-9));
+    expect(summary.soilTemp0To7cmC, closeTo(16.0, 1e-9));
+    expect(summary.soilTemp7To28cmC, closeTo(14.5, 1e-9));
+    expect(summary.soilTemp28To100cmC, closeTo(13.0, 1e-9));
     expect(summary.hasAnyData, isTrue);
   });
 
@@ -87,6 +153,7 @@ void main() {
       location: location,
       startDate: start,
       endDate: end,
+      method: AggregationMethod.median,
       daily: {
         'time': ['2020-01-01', '2020-01-02'],
         // A plain numeric mean/median of [350, 10] gives 180 (due south) --
@@ -94,12 +161,13 @@ void main() {
         'wind_direction_10m_dominant': [350.0, 10.0],
       },
     );
-    expect(wrapped.medianWindDirectionDeg, closeTo(0.0, 1e-6));
+    expect(wrapped.windDirectionDeg, closeTo(0.0, 1e-6));
 
     final opposite = aggregateDailyArchive(
       location: location,
       startDate: start,
       endDate: end,
+      method: AggregationMethod.median,
       daily: {
         'time': ['2020-01-01', '2020-01-02'],
         // Directly opposite directions cancel out -> no representative
@@ -107,7 +175,7 @@ void main() {
         'wind_direction_10m_dominant': [0.0, 180.0],
       },
     );
-    expect(opposite.medianWindDirectionDeg, isNull);
+    expect(opposite.windDirectionDeg, isNull);
   });
 
   test('median of an even number of days averages the two middle values', () {
@@ -115,6 +183,7 @@ void main() {
       location: location,
       startDate: start,
       endDate: DateTime(2020, 1, 4),
+      method: AggregationMethod.median,
       daily: {
         'time': ['2020-01-01', '2020-01-02', '2020-01-03', '2020-01-04'],
         'temperature_2m_max': [10.0, 20.0, 30.0, 40.0],
@@ -123,7 +192,7 @@ void main() {
 
     // Sorted [10, 20, 30, 40] -> median is the average of the two middle
     // values, (20 + 30) / 2 = 25, not a single sample.
-    expect(summary.medianHighC, closeTo(25.0, 1e-9));
+    expect(summary.highC, closeTo(25.0, 1e-9));
   });
 
   test('skips null values instead of treating them as zero', () {
@@ -131,6 +200,7 @@ void main() {
       location: location,
       startDate: start,
       endDate: end,
+      method: AggregationMethod.median,
       daily: {
         'time': ['2020-01-01', '2020-01-02', '2020-01-03'],
         'temperature_2m_max': [10.0, null, 14.0],
@@ -140,10 +210,10 @@ void main() {
     );
 
     expect(summary.dayCount, 3);
-    expect(summary.medianHighC, closeTo(12.0, 1e-9));
-    expect(summary.medianMeanC, closeTo(7.0, 1e-9));
+    expect(summary.highC, closeTo(12.0, 1e-9));
+    expect(summary.meanC, closeTo(7.0, 1e-9));
     expect(summary.totalPrecipitationMm, isNull);
-    expect(summary.medianPrecipitationMm, isNull);
+    expect(summary.precipitationPerDayMm, isNull);
     expect(summary.hasAnyData, isTrue);
   });
 
@@ -152,12 +222,13 @@ void main() {
       location: location,
       startDate: start,
       endDate: end,
+      method: AggregationMethod.median,
       daily: {'time': <String>[]},
     );
 
     expect(summary.dayCount, 0);
-    expect(summary.medianHighC, isNull);
-    expect(summary.medianMeanC, isNull);
+    expect(summary.highC, isNull);
+    expect(summary.meanC, isNull);
     expect(summary.hasAnyData, isFalse);
   });
 }

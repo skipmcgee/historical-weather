@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:historical_weather/models/aggregation_method.dart';
 import 'package:historical_weather/models/app_settings.dart';
 import 'package:historical_weather/models/location.dart';
+import 'package:historical_weather/models/unit_system.dart';
 import 'package:historical_weather/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,9 +17,11 @@ void main() {
     expect(settings.apiKey, isNull);
     expect(settings.defaultLocation, isNull);
     expect(settings.themeMode, ThemeMode.system);
+    expect(settings.aggregationMethod, AggregationMethod.median);
+    expect(settings.unitSystem, UnitSystem.imperial);
   });
 
-  test('save() then load() round-trips api key, location, and theme mode', () async {
+  test('save() then load() round-trips every setting', () async {
     final service = SettingsService();
     final location = Location(
       name: 'Austin',
@@ -32,11 +36,15 @@ void main() {
       apiKey: 'secret-key',
       defaultLocation: location,
       themeMode: ThemeMode.dark,
+      aggregationMethod: AggregationMethod.average,
+      unitSystem: UnitSystem.metric,
     ));
 
     final loaded = await service.load();
     expect(loaded.apiKey, 'secret-key');
     expect(loaded.themeMode, ThemeMode.dark);
+    expect(loaded.aggregationMethod, AggregationMethod.average);
+    expect(loaded.unitSystem, UnitSystem.metric);
     expect(loaded.defaultLocation?.name, 'Austin');
     expect(loaded.defaultLocation?.latitude, closeTo(30.27, 1e-9));
     expect(loaded.defaultLocation?.longitude, closeTo(-97.74, 1e-9));
