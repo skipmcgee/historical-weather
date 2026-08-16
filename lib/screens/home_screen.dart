@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/app_settings.dart';
 import '../models/location.dart';
 import '../models/weather_summary.dart';
+import '../services/archive_cache_service.dart';
 import '../services/device_location_service.dart';
 import '../services/open_meteo_service.dart';
 import '../services/settings_service.dart';
@@ -29,6 +30,7 @@ DateTime _todayDateOnly() {
 class _HomeScreenState extends State<HomeScreen> {
   final _service = OpenMeteoService();
   final _settingsService = SettingsService();
+  final _cache = ArchiveCacheService();
 
   Location? _location;
   DateTime? _startDate;
@@ -78,20 +80,29 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final raw = await _service.fetchDailyArchive(
-        location: _location!,
-        startDate: _startDate!,
-        endDate: _endDate!,
-      );
-      final daily = raw['daily'] as Map<String, dynamic>?;
+      var daily = await _cache.lookup(location: _location!, start: _startDate!, end: _endDate!);
       if (daily == null) {
-        throw OpenMeteoException('No daily data returned for this location/date range.');
+        final raw = await _service.fetchDailyArchive(
+          location: _location!,
+          startDate: _startDate!,
+          endDate: _endDate!,
+        );
+        daily = raw['daily'] as Map<String, dynamic>?;
+        if (daily == null) {
+          throw OpenMeteoException('No daily data returned for this location/date range.');
+        }
+        await _cache.store(
+          location: _location!,
+          start: _startDate!,
+          end: _endDate!,
+          daily: daily,
+        );
       }
       final summary = aggregateDailyArchive(
         location: _location!,
         startDate: _startDate!,
         endDate: _endDate!,
-        daily: daily,
+        daily: daily!,
       );
       if (!summary.hasAnyData) {
         throw OpenMeteoException(
