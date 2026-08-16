@@ -12,11 +12,12 @@ import '../models/location.dart';
 /// variables are requested. That's server-side and out of our control, and
 /// it scales badly for very large spans: an 86-year range with the full
 /// variable set measured here actually got a 504 from Open-Meteo's own
-/// nginx after 10 minutes. 60s is a compromise -- generous enough that a
+/// nginx after 10 minutes. 120s is a compromise -- generous enough that a
 /// legitimately slow-but-working multi-decade query isn't cut off
-/// prematurely (25s was, in practice), while still failing in bounded time
-/// rather than matching Open-Meteo's own multi-minute ceiling.
-const _requestTimeout = Duration(seconds: 60);
+/// prematurely (25s, then 60s, both were in practice), while still failing
+/// in bounded time rather than matching Open-Meteo's own multi-minute
+/// ceiling.
+const _requestTimeout = Duration(seconds: 120);
 
 /// The daily archive variables we request and then average client-side.
 const List<String> dailyArchiveVariables = [
