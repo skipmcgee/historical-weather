@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/aggregation_method.dart';
 import '../models/app_settings.dart';
 import '../models/location.dart';
+import '../models/unit_system.dart';
 import '../services/open_meteo_service.dart';
 import '../services/settings_service.dart';
 import '../theme_mode_notifier.dart';
@@ -10,8 +12,9 @@ import '../widgets/glass_card.dart';
 import '../widgets/location_picker.dart';
 
 /// Lets the user set an optional Open-Meteo API key, a default location
-/// override, and the app's light/dark theme preference. Returns the saved
-/// [AppSettings] via `Navigator.pop` so the caller can apply it immediately.
+/// override, the app's light/dark theme preference, and default aggregation
+/// method / unit system. Returns the saved [AppSettings] via
+/// `Navigator.pop` so the caller can apply it immediately.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.initialSettings});
 
@@ -26,6 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final OpenMeteoService _pickerService;
   late Location? _defaultLocation;
   late ThemeMode _themeMode;
+  late AggregationMethod _aggregationMethod;
+  late UnitSystem _unitSystem;
   bool _obscureApiKey = true;
 
   @override
@@ -35,6 +40,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _pickerService = OpenMeteoService();
     _defaultLocation = widget.initialSettings.defaultLocation;
     _themeMode = widget.initialSettings.themeMode;
+    _aggregationMethod = widget.initialSettings.aggregationMethod;
+    _unitSystem = widget.initialSettings.unitSystem;
   }
 
   @override
@@ -49,6 +56,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       apiKey: _apiKeyController.text.trim().isEmpty ? null : _apiKeyController.text.trim(),
       defaultLocation: _defaultLocation,
       themeMode: _themeMode,
+      aggregationMethod: _aggregationMethod,
+      unitSystem: _unitSystem,
     );
     await SettingsService().save(settings);
     themeModeNotifier.value = _themeMode;
@@ -97,6 +106,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           setState(() => _themeMode = mode);
                           themeModeNotifier.value = mode;
                         },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                GlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Result defaults', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Used to prefill each lookup; can still be overridden per-query on the '
+                        'home screen.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                      Text('Aggregation method', style: Theme.of(context).textTheme.bodySmall),
+                      const SizedBox(height: 6),
+                      SegmentedButton<AggregationMethod>(
+                        segments: const [
+                          ButtonSegment(value: AggregationMethod.median, label: Text('Median')),
+                          ButtonSegment(value: AggregationMethod.average, label: Text('Average')),
+                        ],
+                        selected: {_aggregationMethod},
+                        onSelectionChanged: (selection) =>
+                            setState(() => _aggregationMethod = selection.first),
+                      ),
+                      const SizedBox(height: 16),
+                      Text('Units', style: Theme.of(context).textTheme.bodySmall),
+                      const SizedBox(height: 6),
+                      SegmentedButton<UnitSystem>(
+                        segments: const [
+                          ButtonSegment(value: UnitSystem.imperial, label: Text('Imperial')),
+                          ButtonSegment(value: UnitSystem.metric, label: Text('Metric')),
+                        ],
+                        selected: {_unitSystem},
+                        onSelectionChanged: (selection) => setState(() => _unitSystem = selection.first),
                       ),
                     ],
                   ),
