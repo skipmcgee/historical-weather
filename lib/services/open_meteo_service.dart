@@ -87,7 +87,7 @@ class OpenMeteoService {
 
     final response = await _get(uri);
     if (response.statusCode != 200) {
-      throw OpenMeteoException('Location search failed (HTTP ${response.statusCode}).');
+      throw OpenMeteoException(_errorMessage(response, 'Location search failed'));
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -120,14 +120,20 @@ class OpenMeteoService {
 
     final response = await _get(uri);
     if (response.statusCode != 200) {
-      final body = _tryDecode(response.body);
-      final reason = body?['reason'] as String?;
-      throw OpenMeteoException(
-        reason ?? 'Historical weather request failed (HTTP ${response.statusCode}).',
-      );
+      throw OpenMeteoException(_errorMessage(response, 'Historical weather request failed'));
     }
 
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Open-Meteo puts a human-readable explanation in a `reason` field on
+  /// error responses -- including rate limiting ("Hourly API request limit
+  /// exceeded...") -- so surface that verbatim whenever it's present rather
+  /// than just the HTTP status code.
+  String _errorMessage(http.Response response, String fallback) {
+    final reason = _tryDecode(response.body)?['reason'] as String?;
+    if (reason != null && reason.isNotEmpty) return reason;
+    return '$fallback (HTTP ${response.statusCode}).';
   }
 
   Future<http.Response> _get(Uri uri) async {
