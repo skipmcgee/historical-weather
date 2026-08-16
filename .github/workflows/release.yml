@@ -46,7 +46,7 @@ jobs:
           path: historical-weather-web.zip
       - name: Attach to GitHub release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: historical-weather-web.zip
 
@@ -73,7 +73,7 @@ jobs:
           path: historical-weather-linux.zip
       - name: Attach to GitHub release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: historical-weather-linux.zip
 
@@ -96,7 +96,7 @@ jobs:
           path: historical-weather-macos.zip
       - name: Attach to GitHub release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: historical-weather-macos.zip
 
@@ -126,6 +126,6 @@ jobs:
           path: historical-weather-ios-unsigned.zip
       - name: Attach to GitHub release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: historical-weather-ios-unsigned.zip
