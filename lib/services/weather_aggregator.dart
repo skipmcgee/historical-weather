@@ -27,8 +27,18 @@ WeatherSummary aggregateDailyArchive({
   final windGustsMax = _doubles(daily['wind_gusts_10m_max']);
   final windDirection = _doubles(daily['wind_direction_10m_dominant']);
   final relativeHumidity = _doubles(daily['relative_humidity_2m_mean']);
+  final dewPoint = _doubles(daily['dew_point_2m_mean']);
+  final cloudCover = _doubles(daily['cloud_cover_mean']);
+  final surfacePressure = _doubles(daily['surface_pressure_mean']);
   final shortwaveRadiation = _doubles(daily['shortwave_radiation_sum']);
   final sunshineDurationSeconds = _doubles(daily['sunshine_duration']);
+  final et0 = _doubles(daily['et0_fao_evapotranspiration']);
+  final soilMoisture0To7 = _doubles(daily['soil_moisture_0_to_7cm_mean']);
+  final soilMoisture7To28 = _doubles(daily['soil_moisture_7_to_28cm_mean']);
+  final soilMoisture28To100 = _doubles(daily['soil_moisture_28_to_100cm_mean']);
+  final soilTemp0To7 = _doubles(daily['soil_temperature_0_to_7cm_mean']);
+  final soilTemp7To28 = _doubles(daily['soil_temperature_7_to_28cm_mean']);
+  final soilTemp28To100 = _doubles(daily['soil_temperature_28_to_100cm_mean']);
 
   final dailyMeans = <double>[];
   for (var i = 0; i < highs.length && i < lows.length; i++) {
@@ -53,8 +63,19 @@ WeatherSummary aggregateDailyArchive({
     medianWindGustsMaxKmh: _median(windGustsMax),
     medianWindDirectionDeg: _circularMeanDegrees(windDirection),
     medianRelativeHumidityPercent: _median(relativeHumidity),
+    medianDewPointC: _median(dewPoint),
+    medianCloudCoverPercent: _median(cloudCover),
+    medianSurfacePressureHpa: _median(surfacePressure),
     medianShortwaveRadiationMjm2: _median(shortwaveRadiation),
     medianSunshineHours: _median(sunshineDurationSeconds, scale: 1 / 3600),
+    totalEt0Mm: _sumOrNull(et0),
+    medianEt0MmPerDay: _median(et0),
+    medianSoilMoisture0To7cm: _median(soilMoisture0To7),
+    medianSoilMoisture7To28cm: _median(soilMoisture7To28),
+    medianSoilMoisture28To100cm: _median(soilMoisture28To100),
+    medianSoilTemp0To7cmC: _median(soilTemp0To7),
+    medianSoilTemp7To28cmC: _median(soilTemp7To28),
+    medianSoilTemp28To100cmC: _median(soilTemp28To100),
   );
 }
 

@@ -48,6 +48,40 @@ void main() {
     expect(summary.hasAnyData, isTrue);
   });
 
+  test('computes atmosphere, evapotranspiration, and soil metrics', () {
+    final summary = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: end,
+      daily: {
+        'time': ['2020-01-01', '2020-01-02', '2020-01-03'],
+        'dew_point_2m_mean': [10.0, 12.0, 14.0],
+        'cloud_cover_mean': [20.0, 50.0, 80.0],
+        'surface_pressure_mean': [1000.0, 1010.0, 1020.0],
+        'et0_fao_evapotranspiration': [1.0, 2.0, 3.0],
+        'soil_moisture_0_to_7cm_mean': [0.30, 0.32, 0.34],
+        'soil_moisture_7_to_28cm_mean': [0.35, 0.36, 0.37],
+        'soil_moisture_28_to_100cm_mean': [0.40, 0.40, 0.41],
+        'soil_temperature_0_to_7cm_mean': [15.0, 16.0, 17.0],
+        'soil_temperature_7_to_28cm_mean': [14.0, 14.5, 15.0],
+        'soil_temperature_28_to_100cm_mean': [13.0, 13.0, 13.5],
+      },
+    );
+
+    expect(summary.medianDewPointC, closeTo(12.0, 1e-9));
+    expect(summary.medianCloudCoverPercent, closeTo(50.0, 1e-9));
+    expect(summary.medianSurfacePressureHpa, closeTo(1010.0, 1e-9));
+    expect(summary.totalEt0Mm, closeTo(6.0, 1e-9));
+    expect(summary.medianEt0MmPerDay, closeTo(2.0, 1e-9));
+    expect(summary.medianSoilMoisture0To7cm, closeTo(0.32, 1e-9));
+    expect(summary.medianSoilMoisture7To28cm, closeTo(0.36, 1e-9));
+    expect(summary.medianSoilMoisture28To100cm, closeTo(0.40, 1e-9));
+    expect(summary.medianSoilTemp0To7cmC, closeTo(16.0, 1e-9));
+    expect(summary.medianSoilTemp7To28cmC, closeTo(14.5, 1e-9));
+    expect(summary.medianSoilTemp28To100cmC, closeTo(13.0, 1e-9));
+    expect(summary.hasAnyData, isTrue);
+  });
+
   test('wind direction is averaged circularly, not numerically', () {
     final wrapped = aggregateDailyArchive(
       location: location,
