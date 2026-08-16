@@ -17,6 +17,16 @@ const List<String> dailyArchiveVariables = [
   'shortwave_radiation_sum',
   'sunshine_duration',
   'relative_humidity_2m_mean',
+  'dew_point_2m_mean',
+  'cloud_cover_mean',
+  'surface_pressure_mean',
+  'et0_fao_evapotranspiration',
+  'soil_moisture_0_to_7cm_mean',
+  'soil_moisture_7_to_28cm_mean',
+  'soil_moisture_28_to_100cm_mean',
+  'soil_temperature_0_to_7cm_mean',
+  'soil_temperature_7_to_28cm_mean',
+  'soil_temperature_28_to_100cm_mean',
 ];
 
 class OpenMeteoException implements Exception {
