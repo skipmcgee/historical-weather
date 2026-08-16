@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
         location: _location!,
         startDate: _startDate!,
         endDate: _endDate!,
-        daily: daily!,
+        daily: daily,
       );
       if (!summary.hasAnyData) {
         throw OpenMeteoException(
