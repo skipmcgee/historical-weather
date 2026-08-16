@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/location.dart';
@@ -5,7 +7,8 @@ import '../services/open_meteo_service.dart';
 import 'glass_card.dart';
 
 /// Lets the user either search for a place by name (via Open-Meteo
-/// geocoding) or expand a section to type exact latitude/longitude.
+/// geocoding, live as they type) or expand a section to type exact
+/// latitude/longitude.
 class LocationPicker extends StatefulWidget {
   const LocationPicker({
     super.key,
@@ -23,6 +26,9 @@ class LocationPicker extends StatefulWidget {
 }
 
 class _LocationPickerState extends State<LocationPicker> {
+  static const _debounceDuration = Duration(milliseconds: 350);
+  static const _minQueryLength = 2;
+
   final _searchController = TextEditingController();
   final _latController = TextEditingController();
   final _lonController = TextEditingController();
@@ -32,17 +38,46 @@ class _LocationPickerState extends State<LocationPicker> {
   String? _error;
   bool _manualExpanded = false;
 
+  Timer? _debounce;
+  int _requestGeneration = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onQueryChanged);
+  }
+
   @override
   void dispose() {
+    _debounce?.cancel();
+    _searchController.removeListener(_onQueryChanged);
     _searchController.dispose();
     _latController.dispose();
     _lonController.dispose();
     super.dispose();
   }
 
-  Future<void> _search() async {
+  void _onQueryChanged() {
+    _debounce?.cancel();
     final query = _searchController.text.trim();
+
+    if (query.length < _minQueryLength) {
+      _requestGeneration++;
+      setState(() {
+        _results = [];
+        _error = null;
+        _searching = false;
+      });
+      return;
+    }
+
+    _debounce = Timer(_debounceDuration, () => _search(query));
+  }
+
+  Future<void> _search(String query) async {
     if (query.isEmpty) return;
+    _debounce?.cancel();
+    final generation = ++_requestGeneration;
 
     setState(() {
       _searching = true;
@@ -51,14 +86,18 @@ class _LocationPickerState extends State<LocationPicker> {
 
     try {
       final results = await widget.service.searchLocations(query);
+      if (!mounted || generation != _requestGeneration) return;
       setState(() {
         _results = results;
         if (results.isEmpty) _error = 'No matching locations found.';
       });
     } catch (e) {
+      if (!mounted || generation != _requestGeneration) return;
       setState(() => _error = 'Search failed: $e');
     } finally {
-      setState(() => _searching = false);
+      if (mounted && generation == _requestGeneration) {
+        setState(() => _searching = false);
+      }
     }
   }
 
@@ -97,30 +136,29 @@ class _LocationPickerState extends State<LocationPicker> {
             ),
           ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                decoration: const InputDecoration(
-                  labelText: 'Search for a city or place',
-                  hintText: 'e.g. Austin, TX',
-                ),
-                onSubmitted: (_) => _search(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: _searching ? null : _search,
-              child: _searching
-                  ? const SizedBox(
+        TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            labelText: 'Search for a city or place',
+            hintText: 'e.g. Austin, TX',
+            suffixIcon: _searching
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Search'),
-            ),
-          ],
+                    ),
+                  )
+                : (_searchController.text.isNotEmpty
+                    ? IconButton(
+                        tooltip: 'Clear',
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => _searchController.clear(),
+                      )
+                    : null),
+          ),
+          onSubmitted: _search,
         ),
         if (_error != null) ...[
           const SizedBox(height: 8),
@@ -146,6 +184,8 @@ class _LocationPickerState extends State<LocationPicker> {
                       '${location.longitude.toStringAsFixed(4)}',
                     ),
                     onTap: () {
+                      _debounce?.cancel();
+                      _requestGeneration++;
                       widget.onSelected(location);
                       setState(() => _results = []);
                       _searchController.clear();
