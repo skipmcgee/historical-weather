@@ -13,6 +13,17 @@ class WeatherSummaryView extends StatelessWidget {
     return '${value.toStringAsFixed(decimals)} $unit';
   }
 
+  static const _compassPoints = [
+    'N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+    'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW',
+  ];
+
+  String _fmtDirection(double? degrees) {
+    if (degrees == null) return '—';
+    final index = ((degrees / 22.5) + 0.5).floor() % 16;
+    return '${degrees.toStringAsFixed(0)}° (${_compassPoints[index]})';
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -35,6 +46,18 @@ class WeatherSummaryView extends StatelessWidget {
         'Median max wind gusts',
         _fmt(summary.medianWindGustsMaxKmh, 'km/h'),
         scheme.tertiary,
+      ),
+      (
+        Icons.navigation,
+        'Median wind direction',
+        _fmtDirection(summary.medianWindDirectionDeg),
+        scheme.tertiary,
+      ),
+      (
+        Icons.opacity,
+        'Median relative humidity',
+        _fmt(summary.medianRelativeHumidityPercent, '%', decimals: 0),
+        scheme.secondary,
       ),
       (Icons.wb_sunny, 'Median sunshine', _fmt(summary.medianSunshineHours, 'hrs'), scheme.primary),
     ];

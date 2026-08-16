@@ -13,8 +13,10 @@ const List<String> dailyArchiveVariables = [
   'snowfall_sum',
   'wind_speed_10m_max',
   'wind_gusts_10m_max',
+  'wind_direction_10m_dominant',
   'shortwave_radiation_sum',
   'sunshine_duration',
+  'relative_humidity_2m_mean',
 ];
 
 class OpenMeteoException implements Exception {

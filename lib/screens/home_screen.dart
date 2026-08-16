@@ -156,16 +156,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
+                  height: 56,
                   child: FilledButton.icon(
                     onPressed: _canSubmit && !_loading ? _submit : null,
+                    style: FilledButton.styleFrom(textStyle: const TextStyle(fontSize: 17)),
                     icon: _loading
                         ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.air),
-                    label: const Text('Summon the winds'),
+                        : const Icon(Icons.air, size: 24),
+                    label: const Text('Summon the median historical weather data'),
                   ),
                 ),
                 if (_error != null) ...[

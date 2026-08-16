@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../models/location.dart';
 import '../models/weather_summary.dart';
 
@@ -23,6 +25,8 @@ WeatherSummary aggregateDailyArchive({
   final snowfall = _doubles(daily['snowfall_sum']);
   final windSpeedMax = _doubles(daily['wind_speed_10m_max']);
   final windGustsMax = _doubles(daily['wind_gusts_10m_max']);
+  final windDirection = _doubles(daily['wind_direction_10m_dominant']);
+  final relativeHumidity = _doubles(daily['relative_humidity_2m_mean']);
   final shortwaveRadiation = _doubles(daily['shortwave_radiation_sum']);
   final sunshineDurationSeconds = _doubles(daily['sunshine_duration']);
 
@@ -47,6 +51,8 @@ WeatherSummary aggregateDailyArchive({
     totalSnowfallCm: _sumOrNull(snowfall),
     medianWindSpeedMaxKmh: _median(windSpeedMax),
     medianWindGustsMaxKmh: _median(windGustsMax),
+    medianWindDirectionDeg: _circularMeanDegrees(windDirection),
+    medianRelativeHumidityPercent: _median(relativeHumidity),
     medianShortwaveRadiationMjm2: _median(shortwaveRadiation),
     medianSunshineHours: _median(sunshineDurationSeconds, scale: 1 / 3600),
   );
@@ -70,4 +76,24 @@ double? _median(List<double?> values, {double scale = 1}) {
   final mid = present.length ~/ 2;
   final median = present.length.isOdd ? present[mid] : (present[mid - 1] + present[mid]) / 2;
   return median * scale;
+}
+
+/// Averages a set of compass directions (degrees) via vector sum rather
+/// than a plain numeric median/mean — 350deg and 10deg should average to
+/// ~0deg, not 180deg. Returns null if the vectors cancel out exactly
+/// (e.g. an even split between opposite directions), since no single
+/// direction is representative in that case.
+double? _circularMeanDegrees(List<double?> values) {
+  final present = values.whereType<double>();
+  if (present.isEmpty) return null;
+  var x = 0.0, y = 0.0;
+  for (final degrees in present) {
+    final radians = degrees * math.pi / 180;
+    x += math.cos(radians);
+    y += math.sin(radians);
+  }
+  if (x.abs() < 1e-9 && y.abs() < 1e-9) return null;
+  final meanRadians = math.atan2(y, x);
+  final meanDegrees = meanRadians * 180 / math.pi;
+  return (meanDegrees + 360) % 360;
 }
