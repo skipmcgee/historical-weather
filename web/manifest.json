@@ -1,11 +1,11 @@
 {
-    "name": "historical_weather",
-    "short_name": "historical_weather",
+    "name": "Aeolus — Historical Weather",
+    "short_name": "Aeolus",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0A0E1E",
+    "theme_color": "#0A0E1E",
+    "description": "Ask the keeper of the winds for average historical weather over any location and date range, via Open-Meteo.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/location.dart';
 import '../services/open_meteo_service.dart';
+import 'glass_card.dart';
 
 /// Lets the user either search for a place by name (via Open-Meteo
 /// geocoding) or expand a section to type exact latitude/longitude.
@@ -84,9 +85,10 @@ class _LocationPickerState extends State<LocationPicker> {
         Text('Location', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         if (widget.selected != null)
-          Card(
+          GlassCard(
+            padding: EdgeInsets.zero,
             child: ListTile(
-              leading: const Icon(Icons.place),
+              leading: const Icon(Icons.explore),
               title: Text(widget.selected!.displayLabel),
               subtitle: Text(
                 '${widget.selected!.latitude.toStringAsFixed(4)}, '
@@ -103,7 +105,6 @@ class _LocationPickerState extends State<LocationPicker> {
                 decoration: const InputDecoration(
                   labelText: 'Search for a city or place',
                   hintText: 'e.g. Austin, TX',
-                  border: OutlineInputBorder(),
                 ),
                 onSubmitted: (_) => _search(),
               ),
@@ -129,7 +130,8 @@ class _LocationPickerState extends State<LocationPicker> {
           const SizedBox(height: 8),
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 220),
-            child: Card(
+            child: GlassCard(
+              padding: EdgeInsets.zero,
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: _results.length,
@@ -137,6 +139,7 @@ class _LocationPickerState extends State<LocationPicker> {
                 itemBuilder: (context, index) {
                   final location = _results[index];
                   return ListTile(
+                    leading: const Icon(Icons.air, size: 20),
                     title: Text(location.displayLabel),
                     subtitle: Text(
                       '${location.latitude.toStringAsFixed(4)}, '
@@ -166,10 +169,7 @@ class _LocationPickerState extends State<LocationPicker> {
                 child: TextField(
                   controller: _latController,
                   keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Latitude',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Latitude'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -177,10 +177,7 @@ class _LocationPickerState extends State<LocationPicker> {
                 child: TextField(
                   controller: _lonController,
                   keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Longitude',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Longitude'),
                 ),
               ),
               const SizedBox(width: 8),

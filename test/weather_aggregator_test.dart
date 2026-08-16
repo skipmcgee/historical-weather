@@ -7,7 +7,7 @@ void main() {
   final start = DateTime(2020, 1, 1);
   final end = DateTime(2020, 1, 3);
 
-  test('averages and sums across all days', () {
+  test('computes medians and sums across all days', () {
     final summary = aggregateDailyArchive(
       location: location,
       startDate: start,
@@ -27,18 +27,36 @@ void main() {
     );
 
     expect(summary.dayCount, 3);
-    expect(summary.avgHighC, closeTo(12.0, 1e-9));
-    expect(summary.avgLowC, closeTo(2.0, 1e-9));
-    expect(summary.avgMeanC, closeTo(7.0, 1e-9));
+    expect(summary.medianHighC, closeTo(12.0, 1e-9));
+    expect(summary.medianLowC, closeTo(2.0, 1e-9));
+    expect(summary.medianMeanC, closeTo(7.0, 1e-9));
     expect(summary.totalPrecipitationMm, closeTo(4.0, 1e-9));
-    expect(summary.avgPrecipitationMm, closeTo(4.0 / 3, 1e-9));
+    // Sorted [0, 1, 3] -> median is the middle value, 1.0 (not the mean, 4/3).
+    expect(summary.medianPrecipitationMm, closeTo(1.0, 1e-9));
     expect(summary.totalRainMm, closeTo(4.0, 1e-9));
     expect(summary.totalSnowfallCm, closeTo(0.0, 1e-9));
-    expect(summary.avgWindSpeedMaxKmh, closeTo(20.0, 1e-9));
-    expect(summary.avgWindGustsMaxKmh, closeTo(25.0, 1e-9));
-    expect(summary.avgShortwaveRadiationMjm2, closeTo(6.0, 1e-9));
-    // sunshine_duration is in seconds; 1h + 2h + 3h averaged -> 2 hours.
-    expect(summary.avgSunshineHours, closeTo(2.0, 1e-9));
+    expect(summary.medianWindSpeedMaxKmh, closeTo(20.0, 1e-9));
+    expect(summary.medianWindGustsMaxKmh, closeTo(25.0, 1e-9));
+    expect(summary.medianShortwaveRadiationMjm2, closeTo(6.0, 1e-9));
+    // sunshine_duration is in seconds; median of 1h/2h/3h -> 2 hours.
+    expect(summary.medianSunshineHours, closeTo(2.0, 1e-9));
+    expect(summary.hasAnyData, isTrue);
+  });
+
+  test('median of an even number of days averages the two middle values', () {
+    final summary = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: DateTime(2020, 1, 4),
+      daily: {
+        'time': ['2020-01-01', '2020-01-02', '2020-01-03', '2020-01-04'],
+        'temperature_2m_max': [10.0, 20.0, 30.0, 40.0],
+      },
+    );
+
+    // Sorted [10, 20, 30, 40] -> median is the average of the two middle
+    // values, (20 + 30) / 2 = 25, not a single sample.
+    expect(summary.medianHighC, closeTo(25.0, 1e-9));
   });
 
   test('skips null values instead of treating them as zero', () {
@@ -55,13 +73,14 @@ void main() {
     );
 
     expect(summary.dayCount, 3);
-    expect(summary.avgHighC, closeTo(12.0, 1e-9));
-    expect(summary.avgMeanC, closeTo(7.0, 1e-9));
+    expect(summary.medianHighC, closeTo(12.0, 1e-9));
+    expect(summary.medianMeanC, closeTo(7.0, 1e-9));
     expect(summary.totalPrecipitationMm, isNull);
-    expect(summary.avgPrecipitationMm, isNull);
+    expect(summary.medianPrecipitationMm, isNull);
+    expect(summary.hasAnyData, isTrue);
   });
 
-  test('handles entirely empty daily data', () {
+  test('handles entirely empty daily data as "no data" rather than crashing', () {
     final summary = aggregateDailyArchive(
       location: location,
       startDate: start,
@@ -70,7 +89,8 @@ void main() {
     );
 
     expect(summary.dayCount, 0);
-    expect(summary.avgHighC, isNull);
-    expect(summary.avgMeanC, isNull);
+    expect(summary.medianHighC, isNull);
+    expect(summary.medianMeanC, isNull);
+    expect(summary.hasAnyData, isFalse);
   });
 }

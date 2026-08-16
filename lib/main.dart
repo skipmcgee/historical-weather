@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
 import 'services/settings_service.dart';
+import 'theme/aeolus_theme.dart';
 import 'theme_mode_notifier.dart';
 
 void main() async {
@@ -20,13 +21,9 @@ class HistoricalWeatherApp extends StatelessWidget {
       valueListenable: themeModeNotifier,
       builder: (context, mode, _) {
         return MaterialApp(
-          title: 'Historical Weather',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.light),
-          ),
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.dark),
-          ),
+          title: 'Aeolus — Historical Weather',
+          theme: AeolusTheme.light(),
+          darkTheme: AeolusTheme.dark(),
           themeMode: mode,
           home: const HomeScreen(),
         );
