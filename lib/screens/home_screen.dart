@@ -21,13 +21,18 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+DateTime _todayDateOnly() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+}
+
 class _HomeScreenState extends State<HomeScreen> {
   final _service = OpenMeteoService();
   final _settingsService = SettingsService();
 
   Location? _location;
   DateTime? _startDate;
-  DateTime? _endDate;
+  DateTime? _endDate = _todayDateOnly();
 
   bool _loading = false;
   String? _error;
