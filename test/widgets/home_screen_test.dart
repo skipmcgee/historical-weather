@@ -34,30 +34,13 @@ void main() {
     expect(button.onPressed, isNull);
   });
 
-  testWidgets('aggregation method checkbox defaults to unchecked (median)', (tester) async {
+  testWidgets('aggregation method and units have no per-query controls on the home screen', (tester) async {
+    // These are set globally in Settings only, per user preference -- the
+    // home screen should not offer a way to override them per-query.
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await tester.pump();
 
-    final checkbox = tester.widget<CheckboxListTile>(find.byType(CheckboxListTile));
-    expect(checkbox.value, isFalse);
-  });
-
-  testWidgets('tapping the aggregation checkbox switches to average', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
-    await tester.pump();
-
-    await tester.tap(find.byType(CheckboxListTile));
-    await tester.pump();
-
-    final checkbox = tester.widget<CheckboxListTile>(find.byType(CheckboxListTile));
-    expect(checkbox.value, isTrue);
-  });
-
-  testWidgets('unit system toggle defaults to imperial', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
-    await tester.pump();
-
-    final segmented = tester.widget<SegmentedButton<UnitSystem>>(find.byType(SegmentedButton<UnitSystem>));
-    expect(segmented.selected, {UnitSystem.imperial});
+    expect(find.byType(CheckboxListTile), findsNothing);
+    expect(find.byType(SegmentedButton<UnitSystem>), findsNothing);
   });
 }

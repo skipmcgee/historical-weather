@@ -229,38 +229,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   }),
                   onEndDateChanged: (date) => setState(() => _endDate = date),
                 ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  value: _method == AggregationMethod.average,
-                  onChanged: _loading
-                      ? null
-                      : (checked) => setState(() {
-                            _method = (checked ?? false) ? AggregationMethod.average : AggregationMethod.median;
-                          }),
-                  title: const Text('Use average instead of median'),
-                  subtitle: const Text(
-                    'Median (default) resists a few extreme days skewing the result; average is the literal mean.',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text('Units', style: Theme.of(context).textTheme.bodyMedium),
-                    const SizedBox(width: 12),
-                    SegmentedButton<UnitSystem>(
-                      segments: const [
-                        ButtonSegment(value: UnitSystem.imperial, label: Text('Imperial')),
-                        ButtonSegment(value: UnitSystem.metric, label: Text('Metric')),
-                      ],
-                      selected: {_unitSystem},
-                      onSelectionChanged: _loading
-                          ? null
-                          : (selection) => setState(() => _unitSystem = selection.first),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   height: 56,
