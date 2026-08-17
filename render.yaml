@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: historical-weather-mcp-server
+    runtime: node
+    rootDir: mcp-server
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 24
+      - key: MCP_AUTH_TOKEN
+        sync: false
+      - key: OPEN_METEO_API_KEY
+        sync: false

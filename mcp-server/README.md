@@ -8,12 +8,13 @@ app's domain logic (`lib/services/open_meteo_service.dart`,
 `lib/services/weather_aggregator.dart`, `lib/models/*.dart`), not a wrapper around the
 Flutter app — MCP's official SDKs don't cover Dart.
 
-Runs locally over stdio (a client spawns it as a subprocess) — see [Hosting](#hosting)
-for the current status of running it as a remote/network-accessible service instead.
+Runs locally over stdio (a client spawns it as a subprocess), or as a remote HTTP
+service (e.g. on Render) that Claude can connect to as a custom connector — see
+[Hosting](#hosting).
 
 ## Quick start
 
-Requires Node.js 18+.
+Requires Node.js 22+ (current LTS is Node 24).
 
 ```bash
 npm install
@@ -120,15 +121,50 @@ long-running local server process).
 
 ## Hosting
 
-Today: **local only.** The server implements the stdio transport, meaning a client
-spawns `node dist/index.js` as a subprocess on the same machine (see above) — this is
-how most MCP servers run today, and requires no deployment or auth of its own.
+### Local (stdio)
 
-**Remote/network hosting is not yet supported.** Running this as a persistent service
-other machines connect to would need the Streamable HTTP transport added, plus an auth
-story (a bare unauthenticated public endpoint proxying to Open-Meteo is asking for
-abuse) and a place to actually run it. That's a real architecture decision, not a docs
-gap — planned as a follow-up, not yet built.
+The default. A client (Claude Code, Claude Desktop) spawns `node dist/index.js` as a
+subprocess on the same machine — see [Connecting a client](#connecting-a-client) above.
+No deployment, network exposure, or auth needed.
+
+### Remote (HTTP, e.g. Render)
+
+`index.ts` also supports the MCP Streamable HTTP transport, selected automatically when
+a `PORT` env var is set (which Render, and most PaaS conventions, set for you) — the
+same `node dist/index.js` entrypoint works for both modes. This lets the server run as a
+persistent, network-accessible service that Claude can connect to as a custom connector
+instead of a locally-spawned subprocess.
+
+Every `/mcp` request must carry `Authorization: Bearer <token>` matching an
+`MCP_AUTH_TOKEN` env var you set — the server refuses to start over HTTP without it, since
+a bare unauthenticated endpoint proxying to Open-Meteo is an open invitation to abuse.
+`/healthz` is intentionally unauthenticated, for the platform's own health checks. This
+is Claude's native `static_headers` auth type for remote connectors; ChatGPT's connector
+UI expects OAuth instead and isn't supported here.
+
+**Deploying to Render:**
+
+1. Generate a token: `openssl rand -hex 32`.
+2. In the Render dashboard, "New" → "Blueprint", pointing at this repo. Render reads
+   [`render.yaml`](../render.yaml) at the repo root, which scopes the service to
+   `mcp-server/` (build: `npm ci && npm run build`, start: `npm start`, health check:
+   `/healthz`).
+3. When prompted for env vars (or afterward, in the service's "Environment" tab), set
+   `MCP_AUTH_TOKEN` to the token from step 1. `OPEN_METEO_API_KEY` is optional, same as
+   local usage.
+4. Once deployed, note the service URL Render assigns
+   (`https://historical-weather-mcp-server-xxxx.onrender.com`) — the MCP endpoint is
+   that URL plus `/mcp`.
+
+**Connecting Claude to the deployed server:** in Claude's connector settings, add a
+custom connector with:
+
+- URL: `https://<your-render-url>/mcp`
+- Auth type: `static_headers`
+- Header: `Authorization: Bearer <your MCP_AUTH_TOKEN>`
+
+Note: Render's free tier spins down after inactivity, so the first request after a quiet
+period will be slow (cold start) rather than failing outright.
 
 ## Development
 
@@ -138,8 +174,7 @@ npm run test:watch
 npm run dev       # tsc --watch
 ```
 
-Manual protocol-level verification (no Claude Code/Desktop needed) — requires Node 22+
-for the inspector itself, separate from the server's own Node 18+ requirement:
+Manual protocol-level verification (no Claude Code/Desktop needed):
 
 ```bash
 npx @modelcontextprotocol/inspector node dist/index.js
@@ -155,7 +190,7 @@ npx @modelcontextprotocol/inspector node dist/index.js
   (or the server subprocess, if your client supports that) — it runs the compiled
   `dist/`, not `src/` directly.
 - **"command not found" / wrong Node**: the client needs `node` on its `PATH`, and it
-  needs to be Node 18+; if you manage Node versions per-shell (nvm, etc.), the client's
+  needs to be Node 22+; if you manage Node versions per-shell (nvm, etc.), the client's
   own process may not inherit that — using an absolute path to the `node` binary in the
   config's `command` field sidesteps this.
 - **`OPEN_METEO_API_KEY` doesn't seem to apply**: confirm it's in the *server's*
