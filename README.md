@@ -92,7 +92,7 @@ Notes on the build artifacts:
   signing credentials wired up as repo secrets.
 
 `.github/workflows/mcp-server.yml` is a separate, path-filtered pipeline
-(`mcp-server/**` only) for the MCP server: `npm ci`, build, test on Node 20.
+(`mcp-server/**` only) for the MCP server: `npm ci`, build, test on Node 24.
 
 `.github/dependabot.yml` opens a weekly pull request for outdated pub packages, npm
 packages (in `mcp-server/`), and GitHub Actions versions. A `dependabot-merge` job in
