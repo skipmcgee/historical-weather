@@ -13,6 +13,9 @@ defaults:
   run:
     working-directory: mcp-server
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,3 +29,33 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+
+  dependabot-merge:
+    # Mirrors release.yml's dependabot-merge job, but scoped to npm_and_yarn
+    # (mcp-server/) updates and gated on this workflow's own test job --
+    # release.yml's version of this job explicitly excludes npm_and_yarn
+    # since it only waits on Flutter build jobs, which can't catch a broken
+    # Node dependency bump. See the comment there for the rest of the
+    # rationale (private-plan tier, direct-push not fork, etc).
+    needs: [test]
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Approve and merge
+        if: |
+          steps.metadata.outputs.update-type != 'version-update:semver-major' &&
+          steps.metadata.outputs.package-ecosystem == 'npm_and_yarn'
+        run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
