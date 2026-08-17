@@ -4,6 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 import { aggregateDailyArchive, hasAnyData } from "./aggregator.js";
+import { ArchiveCache } from "./cache.js";
 import { fetchDailyArchive, OpenMeteoError, searchLocations } from "./openMeteoClient.js";
 import { weatherSummaryToJson } from "./summaryJson.js";
 import type { Location } from "./types.js";
@@ -38,6 +39,8 @@ const server = new McpServer({
   name: "historical-weather",
   version: "0.1.0",
 });
+
+const archiveCache = new ArchiveCache();
 
 server.registerTool(
   "search_locations",
@@ -122,16 +125,21 @@ server.registerTool(
         return textResult("end_date must be on or after start_date.", true);
       }
 
-      const raw = await fetchDailyArchive({
-        latitude: location.latitude,
-        longitude: location.longitude,
-        startDate: start_date,
-        endDate: end_date,
-        apiKey,
-      });
-      const daily = raw.daily as Record<string, unknown> | undefined;
+      let daily = archiveCache.lookup(location, start_date, end_date);
       if (!daily) {
-        return textResult("No daily data returned for this location/date range.", true);
+        const raw = await fetchDailyArchive({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          startDate: start_date,
+          endDate: end_date,
+          apiKey,
+        });
+        const fetched = raw.daily as Record<string, unknown> | undefined;
+        if (!fetched) {
+          return textResult("No daily data returned for this location/date range.", true);
+        }
+        archiveCache.store(location, start_date, end_date, fetched);
+        daily = fetched;
       }
 
       const summary = aggregateDailyArchive({
