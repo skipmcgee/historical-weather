@@ -139,6 +139,13 @@ jobs:
     # that feature. Dependabot pushes branches into this repo directly
     # (it's not a fork), so the default GITHUB_TOKEN already has the write
     # access this needs without requiring `pull_request_target`.
+    #
+    # npm_and_yarn (mcp-server/) updates are excluded here -- this job only
+    # waits on the Flutter build jobs above, which a Node dependency bump
+    # can't actually break, so it can't vouch for whether the bump is safe.
+    # Those are merged by mcp-server.yml's own dependabot-merge job instead,
+    # gated on mcp-server's actual test suite. `needs:` can't span workflow
+    # files, hence the split.
     needs: [test, build-web, build-linux, build-macos, build-ios]
     if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
@@ -152,7 +159,9 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Approve and merge
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        if: |
+          steps.metadata.outputs.update-type != 'version-update:semver-major' &&
+          steps.metadata.outputs.package-ecosystem != 'npm_and_yarn'
         run: |
           gh pr review --approve "$PR_URL"
           gh pr merge --squash "$PR_URL"
