@@ -87,7 +87,11 @@ WeatherSummary aggregateDailyArchive({
 
 List<double?> _doubles(dynamic rawList) {
   if (rawList is! List) return const [];
-  return rawList.map((v) => v == null ? null : (v as num).toDouble()).toList(growable: false);
+  // A malformed/unexpected entry (a future Open-Meteo schema change, a
+  // non-numeric sentinel) is treated the same as a missing day rather than
+  // throwing, since `num` values are already skipped as null elsewhere in
+  // this file when a day's data is incomplete.
+  return rawList.map((v) => v is num ? v.toDouble() : null).toList(growable: false);
 }
 
 double _sum(Iterable<double> values) => values.fold(0.0, (a, b) => a + b);

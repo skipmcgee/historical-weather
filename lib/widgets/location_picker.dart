@@ -104,11 +104,14 @@ class _LocationPickerState extends State<LocationPicker> {
   void _submitManualCoordinates() {
     final lat = double.tryParse(_latController.text.trim());
     final lon = double.tryParse(_lonController.text.trim());
-    if (lat == null || lat < -90 || lat > 90) {
+    // NaN compares false against every bound (`double.nan < -90` is false,
+    // same for `> 90`), so it would otherwise sail through the range check
+    // below -- `double.tryParse('NaN')` returns `double.nan`, not `null`.
+    if (lat == null || lat.isNaN || lat < -90 || lat > 90) {
       setState(() => _error = 'Latitude must be a number between -90 and 90.');
       return;
     }
-    if (lon == null || lon < -180 || lon > 180) {
+    if (lon == null || lon.isNaN || lon < -180 || lon > 180) {
       setState(() => _error = 'Longitude must be a number between -180 and 180.');
       return;
     }

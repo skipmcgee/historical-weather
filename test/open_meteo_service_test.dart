@@ -1,10 +1,19 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:historical_weather/models/location.dart';
 import 'package:historical_weather/services/open_meteo_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+class _ThrowingClient extends http.BaseClient {
+  _ThrowingClient(this.error);
+  final Object error;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) => throw error;
+}
 
 void main() {
   final location = Location.manual(latitude: 30.27, longitude: -97.74);
@@ -74,6 +83,32 @@ void main() {
           'Historical weather request failed (HTTP 503).',
         ),
       ),
+    );
+  });
+
+  test('wraps a generic network failure (not a timeout) in OpenMeteoException', () async {
+    final client = _ThrowingClient(const SocketException('Failed host lookup'));
+    final service = OpenMeteoService(client: client);
+
+    await expectLater(
+      () => service.searchLocations('Austin'),
+      throwsA(
+        isA<OpenMeteoException>().having(
+          (e) => e.message,
+          'message',
+          contains("Couldn't reach Open-Meteo"),
+        ),
+      ),
+    );
+  });
+
+  test('wraps a malformed (non-JSON) body on an otherwise-successful response', () async {
+    final client = MockClient((request) async => http.Response('not json', 200));
+    final service = OpenMeteoService(client: client);
+
+    await expectLater(
+      () => service.searchLocations('Austin'),
+      throwsA(isA<OpenMeteoException>()),
     );
   });
 }

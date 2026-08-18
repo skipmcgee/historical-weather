@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/location.dart';
+import '../util/date_format.dart';
 
 /// Open-Meteo's archive endpoint has a noticeable cold-cache penalty: the
 /// first request for a given location/date-range combo can take several
@@ -91,7 +92,7 @@ class OpenMeteoService {
       throw OpenMeteoException(_errorMessage(response, 'Location search failed'));
     }
 
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final body = _parseJson(response, 'Location search');
     final results = body['results'] as List<dynamic>?;
     if (results == null) return [];
 
@@ -112,8 +113,8 @@ class OpenMeteoService {
       queryParameters: _withApiKey({
         'latitude': location.latitude.toString(),
         'longitude': location.longitude.toString(),
-        'start_date': _isoDate(startDate),
-        'end_date': _isoDate(endDate),
+        'start_date': isoDate(startDate),
+        'end_date': isoDate(endDate),
         'daily': dailyArchiveVariables.join(','),
         'timezone': 'auto',
       }),
@@ -124,7 +125,7 @@ class OpenMeteoService {
       throw OpenMeteoException(_errorMessage(response, 'Historical weather request failed'));
     }
 
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseJson(response, 'Historical weather request');
   }
 
   /// Open-Meteo puts a human-readable explanation in a `reason` field on
@@ -146,6 +147,14 @@ class OpenMeteoService {
         'ranges (many decades) can be genuinely slow on their end -- try a shorter range, or try '
         'again in a moment.',
       );
+    } on OpenMeteoException {
+      rethrow;
+    } catch (e) {
+      // DNS failure, connection refused, TLS error, etc. -- not a timeout,
+      // but still a "couldn't reach Open-Meteo" condition rather than a bug
+      // here, so it gets the same friendly-error treatment instead of a raw
+      // SocketException/ClientException message.
+      throw OpenMeteoException("Couldn't reach Open-Meteo: $e");
     }
   }
 
@@ -157,8 +166,17 @@ class OpenMeteoService {
     }
   }
 
-  static String _isoDate(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  /// Decodes a successful response's body, wrapping a malformed/unexpected
+  /// (non-JSON, or not the expected shape) body in OpenMeteoException so
+  /// callers get the same friendly-error treatment as an HTTP error status,
+  /// instead of a raw, unbranded FormatException/TypeError.
+  Map<String, dynamic> _parseJson(http.Response response, String context) {
+    try {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw OpenMeteoException('$context: Open-Meteo returned an unexpected (non-JSON) response.');
+    }
+  }
 
   void dispose() => _client.close();
 }

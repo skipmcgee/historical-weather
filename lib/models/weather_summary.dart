@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import '../util/date_format.dart';
 import 'aggregation_method.dart';
 import 'location.dart';
 import 'unit_system.dart';
@@ -113,12 +116,9 @@ class WeatherSummary {
     soilTemp28To100cmC,
   ].any((v) => v != null);
 
-  static String _isoDate(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
   static double? _round(double? value, int decimals) {
     if (value == null) return null;
-    final factor = 1 * (decimals == 0 ? 1 : (decimals == 1 ? 10 : (decimals == 2 ? 100 : 1000)));
+    final factor = math.pow(10, decimals);
     return (value * factor).round() / factor;
   }
 
@@ -132,8 +132,8 @@ class WeatherSummary {
         if (location.timezone != null) 'timezone': location.timezone,
       },
       'period': {
-        'start_date': _isoDate(startDate),
-        'end_date': _isoDate(endDate),
+        'start_date': isoDate(startDate),
+        'end_date': isoDate(endDate),
         'day_count': dayCount,
       },
       // How the fields below (other than totals and wind direction, which
@@ -157,10 +157,10 @@ class WeatherSummary {
         'total': _round(u.convertCm(totalSnowfallCm), 2),
       },
       'atmosphere': {
-        'relative_humidity_percent': relativeHumidityPercent,
+        'relative_humidity_percent': _round(relativeHumidityPercent, 0),
         'dew_point_unit': u.temperatureUnit,
         'dew_point': _round(u.convertTemperatureC(dewPointC), 1),
-        'cloud_cover_percent': cloudCoverPercent,
+        'cloud_cover_percent': _round(cloudCoverPercent, 0),
         'surface_pressure_unit': u.pressureUnit,
         'surface_pressure': _round(u.convertHpa(surfacePressureHpa), 2),
       },
@@ -173,8 +173,8 @@ class WeatherSummary {
         'direction_deg': _round(windDirectionDeg, 0),
       },
       'sun': {
-        'shortwave_radiation_mj_m2': shortwaveRadiationMjm2,
-        'sunshine_hours': sunshineHours,
+        'shortwave_radiation_mj_m2': _round(shortwaveRadiationMjm2, 2),
+        'sunshine_hours': _round(sunshineHours, 1),
       },
       'evapotranspiration': {
         'unit': u.precipitationUnit,
@@ -185,9 +185,9 @@ class WeatherSummary {
         // Volumetric water content is a dimensionless ratio -- not affected
         // by the unit system.
         'moisture_m3_m3': {
-          '0_to_7cm': soilMoisture0To7cm,
-          '7_to_28cm': soilMoisture7To28cm,
-          '28_to_100cm': soilMoisture28To100cm,
+          '0_to_7cm': _round(soilMoisture0To7cm, 3),
+          '7_to_28cm': _round(soilMoisture7To28cm, 3),
+          '28_to_100cm': _round(soilMoisture28To100cm, 3),
         },
         'temperature_unit': u.temperatureUnit,
         'temperature': {

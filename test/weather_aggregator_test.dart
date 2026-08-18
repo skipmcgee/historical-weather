@@ -231,4 +231,22 @@ void main() {
     expect(summary.meanC, isNull);
     expect(summary.hasAnyData, isFalse);
   });
+
+  test('treats a malformed (non-numeric) entry as missing instead of throwing', () {
+    final summary = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: end,
+      method: AggregationMethod.median,
+      daily: {
+        'time': ['2020-01-01', '2020-01-02', '2020-01-03'],
+        'temperature_2m_max': [10.0, 'not a number', 14.0],
+        'temperature_2m_min': [0.0, 2.0, 4.0],
+      },
+    );
+
+    expect(summary.dayCount, 3);
+    expect(summary.highC, closeTo(12.0, 1e-9));
+    expect(summary.hasAnyData, isTrue);
+  });
 }

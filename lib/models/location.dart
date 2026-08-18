@@ -22,10 +22,16 @@ class Location {
   }
 
   factory Location.fromGeocodingJson(Map<String, dynamic> json) {
+    final latitude = (json['latitude'] as num).toDouble();
+    final longitude = (json['longitude'] as num).toDouble();
+    // Some sparse/administrative geocoding results come back without a
+    // `name` -- fall back to the coordinates rather than throwing, matching
+    // how Location.manual labels an otherwise-unnamed point.
+    final name = json['name'] as String? ?? '${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
     return Location(
-      name: json['name'] as String,
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
+      name: name,
+      latitude: latitude,
+      longitude: longitude,
       admin1: json['admin1'] as String?,
       country: json['country'] as String?,
       timezone: json['timezone'] as String?,
