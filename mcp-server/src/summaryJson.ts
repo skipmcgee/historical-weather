@@ -57,10 +57,10 @@ export function weatherSummaryToJson(
       total: round(convertCm(u, summary.totalSnowfallCm), 2),
     },
     atmosphere: {
-      relative_humidity_percent: summary.relativeHumidityPercent,
+      relative_humidity_percent: round(summary.relativeHumidityPercent, 0),
       dew_point_unit: temperatureUnit(u),
       dew_point: round(convertTemperatureC(u, summary.dewPointC), 1),
-      cloud_cover_percent: summary.cloudCoverPercent,
+      cloud_cover_percent: round(summary.cloudCoverPercent, 0),
       surface_pressure_unit: pressureUnit(u),
       surface_pressure: round(convertHpa(u, summary.surfacePressureHpa), 2),
     },
@@ -73,8 +73,8 @@ export function weatherSummaryToJson(
       direction_deg: round(summary.windDirectionDeg, 0),
     },
     sun: {
-      shortwave_radiation_mj_m2: summary.shortwaveRadiationMjm2,
-      sunshine_hours: summary.sunshineHours,
+      shortwave_radiation_mj_m2: round(summary.shortwaveRadiationMjm2, 2),
+      sunshine_hours: round(summary.sunshineHours, 1),
     },
     evapotranspiration: {
       unit: precipitationUnit(u),
@@ -85,9 +85,9 @@ export function weatherSummaryToJson(
       // Volumetric water content is a dimensionless ratio -- not affected
       // by the unit system.
       moisture_m3_m3: {
-        "0_to_7cm": summary.soilMoisture0To7cm,
-        "7_to_28cm": summary.soilMoisture7To28cm,
-        "28_to_100cm": summary.soilMoisture28To100cm,
+        "0_to_7cm": round(summary.soilMoisture0To7cm, 3),
+        "7_to_28cm": round(summary.soilMoisture7To28cm, 3),
+        "28_to_100cm": round(summary.soilMoisture28To100cm, 3),
       },
       temperature_unit: temperatureUnit(u),
       temperature: {
@@ -107,6 +107,6 @@ function displayLabel(location: Location): string {
 
 function round(value: number | null, decimals: number): number | null {
   if (value == null) return null;
-  const factor = decimals === 0 ? 1 : decimals === 1 ? 10 : decimals === 2 ? 100 : 1000;
+  const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
 }
