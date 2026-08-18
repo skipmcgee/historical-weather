@@ -12,15 +12,6 @@ interface CacheEntry {
   daily: Record<string, unknown>;
 }
 
-// Date.now() only has millisecond resolution, and a tight burst of writes
-// can easily land multiple entries on the same millisecond; sorting by
-// fetchedAt alone for "keep the newest N" would then fall back to a stable
-// sort's original (oldest-first) order among the tied entries, potentially
-// evicting genuinely-recent entries instead of old ones. This counter gives
-// eviction a tie-proof, strictly-increasing recency signal independent of
-// clock resolution.
-let insertionSequence = 0;
-
 /**
  * Caches Open-Meteo daily-archive responses in memory, keyed by location
  * and date range, so re-running the same (or a narrower) query within this
@@ -45,6 +36,17 @@ let insertionSequence = 0;
 export class ArchiveCache {
   private entries: CacheEntry[] = [];
 
+  // Date.now() only has millisecond resolution, and a tight burst of writes
+  // can easily land multiple entries on the same millisecond; sorting by
+  // fetchedAt alone for "keep the newest N" would then fall back to a
+  // stable sort's original (oldest-first) order among the tied entries,
+  // potentially evicting genuinely-recent entries instead of old ones. This
+  // counter gives eviction a tie-proof, strictly-increasing recency signal
+  // independent of clock resolution. Instance-scoped (not module-level) so
+  // separate ArchiveCache instances -- e.g. one per test -- don't share
+  // eviction ordering state.
+  private insertionSequence = 0;
+
   lookup(location: Location, start: string, end: string): Record<string, unknown> | null {
     const key = locationKey(location);
     this.entries = evict(this.entries);
@@ -66,7 +68,7 @@ export class ArchiveCache {
       start,
       end,
       fetchedAt: Date.now(),
-      sequence: ++insertionSequence,
+      sequence: ++this.insertionSequence,
       daily,
     });
     this.entries = evict(this.entries);

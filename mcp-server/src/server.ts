@@ -19,6 +19,16 @@ const LONG_RANGE_WARNING_DAYS = 20 * 365;
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+/** DATE_REGEX only checks the shape; this additionally rejects
+ * syntactically-valid-looking but non-existent calendar dates (e.g.
+ * 2020-02-30, 2020-13-01), which `Date.parse` would otherwise silently
+ * normalize (or return NaN for) rather than reject. */
+function isValidCalendarDate(iso: string): boolean {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+}
+
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -31,6 +41,15 @@ function daysBetween(startIso: string, endIso: string): number {
 
 function textResult(text: string, isError = false) {
   return { content: [{ type: "text" as const, text }], isError };
+}
+
+/** Shared error formatting for both tools' catch blocks -- OpenMeteoError
+ * messages are already user-facing and safe to return verbatim; anything
+ * else (a genuine bug) gets an "Unexpected error" prefix so it's never
+ * mistaken for an intentional, actionable message. */
+function formatError(err: unknown): string {
+  if (err instanceof OpenMeteoError) return err.message;
+  return `Unexpected error: ${err instanceof Error ? err.message : String(err)}`;
 }
 
 /**
@@ -66,7 +85,7 @@ export function createMcpServer(archiveCache: ArchiveCache): McpServer {
         const results = await searchLocations(query, process.env.OPEN_METEO_API_KEY);
         return textResult(JSON.stringify(results, null, 2));
       } catch (err) {
-        return textResult(err instanceof Error ? err.message : String(err), true);
+        return textResult(formatError(err), true);
       }
     },
   );
@@ -90,8 +109,14 @@ export function createMcpServer(archiveCache: ArchiveCache): McpServer {
           ),
         latitude: z.number().min(-90).max(90).optional(),
         longitude: z.number().min(-180).max(180).optional(),
-        start_date: z.string().regex(DATE_REGEX, "must be YYYY-MM-DD"),
-        end_date: z.string().regex(DATE_REGEX, "must be YYYY-MM-DD"),
+        start_date: z
+          .string()
+          .regex(DATE_REGEX, "must be YYYY-MM-DD")
+          .refine(isValidCalendarDate, "must be a real calendar date"),
+        end_date: z
+          .string()
+          .regex(DATE_REGEX, "must be YYYY-MM-DD")
+          .refine(isValidCalendarDate, "must be a real calendar date"),
         method: z.enum(["median", "average"]).default("median"),
         units: z.enum(["metric", "imperial"]).default("imperial"),
       },
@@ -99,6 +124,10 @@ export function createMcpServer(archiveCache: ArchiveCache): McpServer {
     async ({ location: locationQuery, latitude, longitude, start_date, end_date, method, units }) => {
       try {
         const apiKey = process.env.OPEN_METEO_API_KEY;
+
+        if ((latitude == null) !== (longitude == null)) {
+          return textResult("Provide both `latitude` and `longitude` together, not just one.", true);
+        }
 
         let location: Location;
         if (latitude != null && longitude != null) {
@@ -172,11 +201,7 @@ export function createMcpServer(archiveCache: ArchiveCache): McpServer {
 
         return textResult(JSON.stringify(json, null, 2));
       } catch (err) {
-        if (err instanceof OpenMeteoError) return textResult(err.message, true);
-        return textResult(
-          `Unexpected error: ${err instanceof Error ? err.message : String(err)}`,
-          true,
-        );
+        return textResult(formatError(err), true);
       }
     },
   );

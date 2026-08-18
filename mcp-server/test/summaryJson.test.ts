@@ -77,4 +77,21 @@ describe("weatherSummaryToJson", () => {
     expect(json.soil.temperature_unit).toBe("°F");
     expect(json.soil.temperature["0_to_7cm"]).toBeCloseTo(59.0, 9); // 15C
   });
+
+  it("rounds unit-agnostic fields to their documented precision", () => {
+    const summary = buildSummary("median");
+    summary.relativeHumidityPercent = 52.3456;
+    summary.cloudCoverPercent = 30.9;
+    summary.shortwaveRadiationMjm2 = 12.3456;
+    summary.sunshineHours = 8.777;
+    summary.soilMoisture0To7cm = 0.32345;
+
+    const json = weatherSummaryToJson(summary) as any;
+
+    expect(json.atmosphere.relative_humidity_percent).toBe(52);
+    expect(json.atmosphere.cloud_cover_percent).toBe(31);
+    expect(json.sun.shortwave_radiation_mj_m2).toBe(12.35);
+    expect(json.sun.sunshine_hours).toBe(8.8);
+    expect(json.soil.moisture_m3_m3["0_to_7cm"]).toBe(0.323);
+  });
 });

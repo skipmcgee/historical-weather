@@ -68,9 +68,27 @@ async function get(url: URL): Promise<Response> {
           "try again in a moment.",
       );
     }
-    throw err;
+    // DNS failures, connection resets, TLS errors, etc. -- not an abort, but
+    // still a "couldn't reach Open-Meteo" condition rather than a bug in
+    // this server, so it gets the same friendly-error treatment as an HTTP
+    // error response instead of leaking a raw fetch/libuv error message.
+    throw new OpenMeteoError(
+      `Couldn't reach Open-Meteo: ${err instanceof Error ? err.message : String(err)}`,
+    );
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+/** Parses a response body as JSON, wrapping a malformed/non-JSON body (a
+ * successful HTTP response with an unexpected payload) in OpenMeteoError so
+ * callers get the same friendly-error treatment as an HTTP error status,
+ * instead of a raw, unbranded SyntaxError. */
+async function parseJson<T>(response: Response, context: string): Promise<T> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new OpenMeteoError(`${context}: Open-Meteo returned an unexpected (non-JSON) response.`);
   }
 }
 
@@ -108,7 +126,7 @@ export async function searchLocations(query: string, apiKey?: string): Promise<L
     throw new OpenMeteoError(await errorMessage(response, "Location search failed"));
   }
 
-  const body = (await response.json()) as { results?: GeocodingResult[] };
+  const body = await parseJson<{ results?: GeocodingResult[] }>(response, "Location search");
   if (!body.results) return [];
 
   return body.results.map((r) => ({
@@ -152,5 +170,5 @@ export async function fetchDailyArchive(params: {
   if (!response.ok) {
     throw new OpenMeteoError(await errorMessage(response, "Historical weather request failed"));
   }
-  return (await response.json()) as Record<string, unknown>;
+  return parseJson<Record<string, unknown>>(response, "Historical weather request");
 }

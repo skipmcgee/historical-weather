@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
@@ -9,10 +9,35 @@ import { createMcpServer } from "./server.js";
 const MCP_PATH = "/mcp";
 const HEALTH_PATH = "/healthz";
 
+// MCP tool-call payloads are small; this is generous headroom while still
+// bounding how much an (authenticated) caller can force this process to
+// buffer in memory per request.
+const MAX_BODY_BYTES = 1_000_000;
+
+class BodyTooLargeError extends Error {}
+class InvalidJsonError extends Error {}
+
 function readJsonBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    let size = 0;
+    let tooLarge = false;
+    req.on("data", (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > MAX_BODY_BYTES) {
+        // Don't destroy the socket here -- that would tear down the
+        // connection before the 413 response below can be written back on
+        // it. Just stop buffering (so an oversized body can't grow memory
+        // unbounded) and keep draining the rest of what the client sends,
+        // so the socket is left in a clean state for that response.
+        if (!tooLarge) {
+          tooLarge = true;
+          reject(new BodyTooLargeError(`Request body exceeds ${MAX_BODY_BYTES} bytes`));
+        }
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on("end", () => {
       const raw = Buffer.concat(chunks).toString("utf8");
       if (!raw) {
@@ -21,12 +46,20 @@ function readJsonBody(req: IncomingMessage): Promise<unknown> {
       }
       try {
         resolve(JSON.parse(raw));
-      } catch (err) {
-        reject(err);
+      } catch {
+        reject(new InvalidJsonError("Request body is not valid JSON"));
       }
     });
     req.on("error", reject);
   });
+}
+
+/** Discards any unread request body so the underlying socket is left in a
+ * clean state for the next request on a keep-alive connection -- matters
+ * for the early-return paths below (health check, 404, 401) that respond
+ * without ever consuming the body. */
+function drain(req: IncomingMessage): void {
+  req.resume();
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -59,8 +92,12 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
  * single-operator deployment, though it doesn't plug into ChatGPT's
  * connector UI, which expects OAuth. /healthz is intentionally
  * unauthenticated, for Render's own health checks.
+ *
+ * Returns the underlying http.Server -- index.ts doesn't need it (the
+ * process just keeps running), but tests do, to close it down cleanly
+ * between cases instead of leaking a listening socket per test.
  */
-export function startHttpServer(port: number): void {
+export function startHttpServer(port: number): Server {
   const authToken = process.env.MCP_AUTH_TOKEN;
   if (!authToken) {
     throw new Error(
@@ -73,12 +110,31 @@ export function startHttpServer(port: number): void {
   const archiveCache = new ArchiveCache();
 
   const httpServer = createServer((req, res) => {
-    void handleRequest(req, res, authToken, archiveCache);
+    res.on("error", (err) => console.error("Response stream error:", err));
+    handleRequest(req, res, authToken, archiveCache).catch((err: unknown) => {
+      // handleRequest already catches everything it can turn into a proper
+      // HTTP response; this is the last-resort backstop so a truly
+      // unexpected throw (e.g. from URL parsing, before the inner try
+      // block) can't become an unhandled rejection that crashes the whole
+      // process for every other in-flight request.
+      console.error("Unhandled error handling MCP request:", err);
+      if (!res.headersSent) {
+        sendJson(res, 500, { error: "Internal server error" });
+      } else {
+        res.destroy();
+      }
+    });
+  });
+
+  httpServer.on("error", (err) => {
+    console.error("HTTP server error:", err);
   });
 
   httpServer.listen(port, () => {
     console.error(`historical-weather MCP server listening on :${port} (HTTP, ${MCP_PATH})`);
   });
+
+  return httpServer;
 }
 
 async function handleRequest(
@@ -87,24 +143,43 @@ async function handleRequest(
   authToken: string,
   archiveCache: ArchiveCache,
 ): Promise<void> {
-  const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
-
-  if (url.pathname === HEALTH_PATH) {
-    sendJson(res, 200, { status: "ok" });
-    return;
-  }
-
-  if (url.pathname !== MCP_PATH) {
-    sendJson(res, 404, { error: "Not found" });
-    return;
-  }
-
-  if (!checkBearerToken(req.headers.authorization, authToken)) {
-    sendJson(res, 401, { error: "Unauthorized" });
-    return;
-  }
-
   try {
+    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+
+    if (url.pathname === HEALTH_PATH) {
+      drain(req);
+      sendJson(res, 200, { status: "ok" });
+      return;
+    }
+
+    if (url.pathname !== MCP_PATH) {
+      drain(req);
+      sendJson(res, 404, { error: "Not found" });
+      return;
+    }
+
+    if (!checkBearerToken(req.headers.authorization, authToken)) {
+      drain(req);
+      sendJson(res, 401, { error: "Unauthorized" });
+      return;
+    }
+
+    let parsedBody: unknown;
+    if (req.method === "POST") {
+      try {
+        parsedBody = await readJsonBody(req);
+      } catch (err) {
+        if (err instanceof BodyTooLargeError) {
+          sendJson(res, 413, { error: "Request body too large" });
+        } else if (err instanceof InvalidJsonError) {
+          sendJson(res, 400, { error: "Request body is not valid JSON" });
+        } else {
+          throw err;
+        }
+        return;
+      }
+    }
+
     const server = createMcpServer(archiveCache);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
@@ -117,13 +192,13 @@ async function handleRequest(
     });
 
     await server.connect(transport);
-
-    const parsedBody = req.method === "POST" ? await readJsonBody(req) : undefined;
     await transport.handleRequest(req, res, parsedBody);
   } catch (err) {
     console.error("Error handling MCP request:", err);
     if (!res.headersSent) {
       sendJson(res, 500, { error: "Internal server error" });
+    } else {
+      res.destroy();
     }
   }
 }
