@@ -23,7 +23,13 @@ void main() {
   Widget wrap(WeatherSummary summary) {
     return MaterialApp(
       home: Scaffold(
-        body: WeatherSummaryView(summary: summary, unitSystem: UnitSystem.imperial),
+        // WeatherSummaryView is normally shown inside a scrollable container
+        // by its caller (HomeScreen) -- without one here, its full card
+        // stack overflows the fixed test viewport and fails the test with a
+        // RenderFlex overflow, unrelated to what these tests actually check.
+        body: SingleChildScrollView(
+          child: WeatherSummaryView(summary: summary, unitSystem: UnitSystem.imperial),
+        ),
       ),
     );
   }
