@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../util/date_format.dart';
+
 /// Open-Meteo's archive (ERA5 reanalysis) goes back to 1940; that's the
 /// practical floor for the date picker.
 final DateTime earliestSupportedDate = DateTime(1940, 1, 1);
@@ -44,7 +46,7 @@ class DateRangePicker extends StatelessWidget {
 
   String _format(DateTime? d) {
     if (d == null) return 'Select date';
-    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    return isoDate(d);
   }
 
   bool get _isVeryLongRange =>

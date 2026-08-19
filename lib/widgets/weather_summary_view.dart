@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/unit_system.dart';
 import '../models/weather_summary.dart';
+import '../util/date_format.dart';
 import 'glass_card.dart';
 
 typedef _Metric = (IconData icon, String label, String value, Color color);
@@ -132,7 +133,7 @@ class WeatherSummaryView extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${_isoDate(summary.startDate)} — ${_isoDate(summary.endDate)} '
+            '${isoDate(summary.startDate)} — ${isoDate(summary.endDate)} '
             '(${summary.dayCount} days, $m, ${u.label.toLowerCase()})',
             style: textTheme.bodyMedium,
           ),
@@ -228,7 +229,4 @@ class WeatherSummaryView extends StatelessWidget {
       ],
     );
   }
-
-  String _isoDate(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }

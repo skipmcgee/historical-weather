@@ -67,6 +67,29 @@ void main() {
     expect(json['soil']['temperature']['0_to_7cm'], closeTo(59.0, 1e-9)); // 15C
   });
 
+  test('toJson rounds unit-agnostic fields to their documented precision', () {
+    final summary = WeatherSummary(
+      location: location,
+      startDate: DateTime(2020, 1, 1),
+      endDate: DateTime(2020, 1, 31),
+      dayCount: 31,
+      method: AggregationMethod.median,
+      relativeHumidityPercent: 52.3456,
+      cloudCoverPercent: 30.9,
+      shortwaveRadiationMjm2: 12.3456,
+      sunshineHours: 8.777,
+      soilMoisture0To7cm: 0.32345,
+    );
+
+    final json = summary.toJson();
+
+    expect(json['atmosphere']['relative_humidity_percent'], 52);
+    expect(json['atmosphere']['cloud_cover_percent'], 31);
+    expect(json['sun']['shortwave_radiation_mj_m2'], 12.35);
+    expect(json['sun']['sunshine_hours'], 8.8);
+    expect(json['soil']['moisture_m3_m3']['0_to_7cm'], 0.323);
+  });
+
   test('hasAnyData is false when every metric is null', () {
     final empty = WeatherSummary(
       location: location,
