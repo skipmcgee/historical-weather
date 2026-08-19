@@ -33,7 +33,14 @@ class GlassCard extends StatelessWidget {
               ),
             ],
           ),
-          child: child,
+          // Material widgets placed directly inside this card (ListTile,
+          // IconButton, etc.) need a Material ancestor to paint their
+          // background/ink splashes correctly -- without one, those effects
+          // are silently invisible rather than erroring at runtime (Flutter
+          // only flags it as a debug-mode assertion). `transparency` adds
+          // that ancestor without drawing a surface of its own, since this
+          // card already provides its own decoration above.
+          child: Material(type: MaterialType.transparency, child: child),
         ),
       ),
     );
