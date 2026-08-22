@@ -52,6 +52,10 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # Lets open_meteo_service_test.dart fast-forward past the 120s request
+  # timeout without a real 120-second-long test.
+  fake_async: ^1.3.3
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

@@ -123,4 +123,54 @@ void main() {
     );
     expect(latest, isNotNull);
   });
+
+  test('treats corrupted stored JSON as an empty cache instead of throwing', () async {
+    SharedPreferences.setMockInitialValues({'archive_cache_v1': 'not valid json{{{'});
+    final cache = ArchiveCacheService();
+
+    final result = await cache.lookup(
+      location: location,
+      start: DateTime(2020, 1, 1),
+      end: DateTime(2020, 1, 3),
+    );
+    expect(result, isNull);
+
+    // A fresh store() afterward should still work normally.
+    await cache.store(
+      location: location,
+      start: DateTime(2020, 1, 1),
+      end: DateTime(2020, 1, 3),
+      daily: {'time': <String>[]},
+    );
+    final afterStore = await cache.lookup(
+      location: location,
+      start: DateTime(2020, 1, 1),
+      end: DateTime(2020, 1, 3),
+    );
+    expect(afterStore, isNotNull);
+  });
+
+  test('slicing pads a shorter per-variable array with null instead of throwing', () async {
+    final cache = ArchiveCacheService();
+    await cache.store(
+      location: location,
+      start: DateTime(2020, 1, 1),
+      end: DateTime(2020, 1, 5),
+      daily: {
+        'time': ['2020-01-01', '2020-01-02', '2020-01-03', '2020-01-04', '2020-01-05'],
+        // Shorter than `time` -- e.g. a variable not yet processed for the
+        // most recent days.
+        'temperature_2m_max': [1.0, 2.0],
+      },
+    );
+
+    final result = await cache.lookup(
+      location: location,
+      start: DateTime(2020, 1, 1),
+      end: DateTime(2020, 1, 5),
+    );
+
+    expect(result, isNotNull);
+    expect(result!['temperature_2m_max'], [1.0, 2.0, null, null, null]);
+  });
 }

@@ -232,6 +232,28 @@ void main() {
     expect(summary.hasAnyData, isFalse);
   });
 
+  test('handles a per-variable array shorter than others without an index error', () {
+    final summary = aggregateDailyArchive(
+      location: location,
+      startDate: start,
+      endDate: end,
+      method: AggregationMethod.median,
+      daily: {
+        'time': ['2020-01-01', '2020-01-02', '2020-01-03'],
+        'temperature_2m_max': [10.0, 12.0, 14.0],
+        // Shorter than the others -- e.g. a variable not yet processed for
+        // the most recent day(s).
+        'temperature_2m_min': [0.0],
+      },
+    );
+
+    expect(summary.dayCount, 3);
+    expect(summary.highC, closeTo(12.0, 1e-9));
+    // Only the one day with both a high and a low contributes to the
+    // high/low mean -- the aligned-pair loop stops at the shorter list.
+    expect(summary.meanC, closeTo(5.0, 1e-9));
+  });
+
   test('treats a malformed (non-numeric) entry as missing instead of throwing', () {
     final summary = aggregateDailyArchive(
       location: location,
