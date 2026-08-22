@@ -76,7 +76,7 @@ class Location {
     // Columbia" ahead of the country for a specific street address.
     final admin1Parts = [
       if (locality != null && locality != name) locality,
-      if (state != null) state,
+      ?state,
     ];
 
     return Location(
