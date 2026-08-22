@@ -38,7 +38,7 @@ class _RealGeolocatorApi implements GeolocatorApi {
 /// default, not a requirement, so callers should treat `null` as "let the
 /// user pick a location manually" with no error shown.
 class DeviceLocationService {
-  DeviceLocationService({GeolocatorApi geolocator = const _RealGeolocatorApi()}) : _geolocator = geolocator;
+  DeviceLocationService({GeolocatorApi? geolocator}) : _geolocator = geolocator ?? const _RealGeolocatorApi();
 
   final GeolocatorApi _geolocator;
 
