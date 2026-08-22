@@ -4,6 +4,7 @@ import '../models/aggregation_method.dart';
 import '../models/app_settings.dart';
 import '../models/location.dart';
 import '../models/unit_system.dart';
+import '../services/nominatim_service.dart';
 import '../services/open_meteo_service.dart';
 import '../services/settings_service.dart';
 import '../theme_mode_notifier.dart';
@@ -27,6 +28,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _apiKeyController;
   late final OpenMeteoService _pickerService;
+  late final NominatimService _pickerNominatimService;
   late Location? _defaultLocation;
   late ThemeMode _themeMode;
   late AggregationMethod _aggregationMethod;
@@ -45,6 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _apiKeyController = TextEditingController(text: widget.initialSettings.apiKey ?? '');
     _pickerService = OpenMeteoService();
+    _pickerNominatimService = NominatimService();
     _defaultLocation = widget.initialSettings.defaultLocation;
     _themeMode = widget.initialSettings.themeMode;
     _aggregationMethod = widget.initialSettings.aggregationMethod;
@@ -55,6 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _apiKeyController.dispose();
     _pickerService.dispose();
+    _pickerNominatimService.dispose();
     super.dispose();
   }
 
@@ -204,6 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 12),
                         LocationPicker(
                           service: _pickerService,
+                          nominatimService: _pickerNominatimService,
                           selected: _defaultLocation,
                           onSelected: (location) => setState(() => _defaultLocation = location),
                         ),
