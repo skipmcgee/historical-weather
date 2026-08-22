@@ -38,6 +38,56 @@ class Location {
     );
   }
 
+  /// Builds a [Location] from one of Nominatim's `jsonv2` search results --
+  /// unlike Open-Meteo's geocoding results (always a city/place name),
+  /// these can be a specific street address or a named point of interest,
+  /// so the label is built from whichever is the most specific piece
+  /// Nominatim actually returned rather than a fixed field.
+  factory Location.fromNominatimJson(Map<String, dynamic> json) {
+    final latitude = double.parse(json['lat'] as String);
+    final longitude = double.parse(json['lon'] as String);
+    final address = (json['address'] as Map<String, dynamic>?) ?? const {};
+
+    final houseNumber = address['house_number'] as String?;
+    final road = address['road'] as String?;
+    final poiName = json['name'] as String?;
+    final locality =
+        (address['city'] ?? address['town'] ?? address['village'] ?? address['hamlet']) as String?;
+    final state = address['state'] as String?;
+
+    final String name;
+    if (houseNumber != null && road != null) {
+      name = '$houseNumber $road';
+    } else if (road != null) {
+      name = road;
+    } else if (poiName != null && poiName.isNotEmpty) {
+      name = poiName;
+    } else if (locality != null) {
+      name = locality;
+    } else {
+      final displayName = json['display_name'] as String?;
+      name = displayName?.split(',').first.trim() ??
+          '${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
+    }
+
+    // Fold the city into admin1 (alongside state) only when it isn't
+    // already the name itself -- avoids "Austin, Austin, Texas" for a
+    // plain city-name result while still showing "Washington, District of
+    // Columbia" ahead of the country for a specific street address.
+    final admin1Parts = [
+      if (locality != null && locality != name) locality,
+      if (state != null) state,
+    ];
+
+    return Location(
+      name: name,
+      latitude: latitude,
+      longitude: longitude,
+      admin1: admin1Parts.isEmpty ? null : admin1Parts.join(', '),
+      country: address['country'] as String?,
+    );
+  }
+
   /// The device's current position, resolved via geolocation rather than a
   /// name search.
   factory Location.currentDevicePosition({required double latitude, required double longitude}) {

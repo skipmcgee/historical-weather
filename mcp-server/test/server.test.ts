@@ -163,7 +163,13 @@ describe("get_historical_weather", () => {
   });
 
   it("resolves a `location` string via geocoding and errors on zero matches", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ results: [] }));
+    // mockImplementation (not mockResolvedValue) so each of the two
+    // concurrent fetch calls (Open-Meteo + Nominatim, via
+    // searchAllLocations) gets its own fresh Response -- a real fetch()
+    // never shares one body stream between separate calls, but
+    // mockResolvedValue would hand out the same object twice, and a
+    // Response body can only be read once.
+    fetchMock.mockImplementation(async () => jsonResponse({ results: [] }));
     const client = await connectedClient(new ArchiveCache());
 
     const result = await client.callTool({
@@ -231,7 +237,10 @@ describe("get_historical_weather", () => {
 
 describe("search_locations", () => {
   it("returns matches from the geocoding API", async () => {
-    fetchMock.mockResolvedValue(
+    // mockImplementation, not mockResolvedValue -- see the comment on the
+    // similar setup above; search_locations now fires Open-Meteo and
+    // Nominatim concurrently, and both need their own Response body.
+    fetchMock.mockImplementation(async () =>
       jsonResponse({
         results: [{ name: "Austin", latitude: 30.27, longitude: -97.74, admin1: "Texas", country: "US" }],
       }),

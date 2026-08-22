@@ -13,8 +13,9 @@ Code, Claude Desktop, etc.) — see [mcp-server/README.md](mcp-server/README.md)
 
 ## Features
 
-- **Location** — search by name (Open-Meteo geocoding, live as you type, debounced) or
-  enter exact latitude/longitude.
+- **Location** — search by city/place name (Open-Meteo geocoding) or a specific street
+  address/point of interest (OpenStreetMap Nominatim), live as you type, debounced and
+  merged into one result list, or enter exact latitude/longitude.
 - **Date range** — any range back to 1940 (the floor of Open-Meteo's ERA5 archive). A note
   in the UI explains that Open-Meteo moved to a higher-resolution model in 2017, so older
   years use a coarser data source; ranges longer than ~20 years get a heads-up that
@@ -61,7 +62,8 @@ flutter run -d linux    # Linux desktop
 ```text
 lib/
   models/      Location, WeatherSummary, AggregationMethod, UnitSystem, AppSettings
-  services/    OpenMeteoService (geocoding + archive fetch), weather_aggregator
+  services/    OpenMeteoService (geocoding + archive fetch), NominatimService (address
+               search), location_search (merges/de-dupes both), weather_aggregator
                (median/average/circular-mean), ArchiveCacheService, SettingsService,
                DeviceLocationService
   screens/     HomeScreen, SettingsScreen

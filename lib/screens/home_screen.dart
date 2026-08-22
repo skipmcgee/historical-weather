@@ -7,6 +7,7 @@ import '../models/unit_system.dart';
 import '../models/weather_summary.dart';
 import '../services/archive_cache_service.dart';
 import '../services/device_location_service.dart';
+import '../services/nominatim_service.dart';
 import '../services/open_meteo_service.dart';
 import '../services/settings_service.dart';
 import '../services/weather_aggregator.dart';
@@ -31,6 +32,7 @@ DateTime _todayDateOnly() {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final _service = OpenMeteoService();
+  final _nominatimService = NominatimService();
   final _settingsService = SettingsService();
   final _cache = ArchiveCacheService();
 
@@ -85,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _progressController?.dispose();
     _service.dispose();
+    _nominatimService.dispose();
     super.dispose();
   }
 
@@ -216,6 +219,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               children: [
                 LocationPicker(
                   service: _service,
+                  nominatimService: _nominatimService,
                   selected: _location,
                   onSelected: (location) => setState(() => _location = location),
                 ),

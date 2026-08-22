@@ -3,7 +3,8 @@ import { z } from "zod";
 
 import { aggregateDailyArchive, hasAnyData } from "./aggregator.js";
 import type { ArchiveCache } from "./cache.js";
-import { fetchDailyArchive, OpenMeteoError, searchLocations } from "./openMeteoClient.js";
+import { searchAllLocations } from "./locationSearch.js";
+import { fetchDailyArchive, OpenMeteoError } from "./openMeteoClient.js";
 import { weatherSummaryToJson } from "./summaryJson.js";
 import type { Location } from "./types.js";
 
@@ -73,16 +74,20 @@ export function createMcpServer(archiveCache: ArchiveCache): McpServer {
     {
       title: "Search locations",
       description:
-        "Search Open-Meteo's geocoding database for places matching a free-text query (city/place " +
-        "name). Returns candidate matches with coordinates, so an ambiguous name can be " +
+        "Search for places matching a free-text query -- a city/place name (via Open-Meteo's " +
+        "geocoding database) or a specific street address or point of interest (via OpenStreetMap's " +
+        "Nominatim). Returns candidate matches with coordinates, so an ambiguous name can be " +
         "disambiguated before calling get_historical_weather.",
       inputSchema: {
-        query: z.string().min(1).describe('Place name to search for, e.g. "Austin, TX"'),
+        query: z
+          .string()
+          .min(1)
+          .describe('Place name or address to search for, e.g. "Austin, TX" or "1600 Pennsylvania Ave NW"'),
       },
     },
     async ({ query }) => {
       try {
-        const results = await searchLocations(query, process.env.OPEN_METEO_API_KEY);
+        const results = await searchAllLocations(query, process.env.OPEN_METEO_API_KEY);
         return textResult(JSON.stringify(results, null, 2));
       } catch (err) {
         return textResult(formatError(err), true);
@@ -97,15 +102,16 @@ export function createMcpServer(archiveCache: ArchiveCache): McpServer {
       description:
         "Look up historical weather for a location and date range via Open-Meteo's archive, " +
         "aggregated into a single summary (median or average per metric) with a unit system " +
-        "applied. Provide either `location` (a place name, resolved automatically via geocoding) " +
-        "or explicit `latitude`/`longitude`. Only data from 1940-01-01 onward is supported.",
+        "applied. Provide either `location` (a place name or street address, resolved " +
+        "automatically via geocoding) or explicit `latitude`/`longitude`. Only data from " +
+        "1940-01-01 onward is supported.",
       inputSchema: {
         location: z
           .string()
           .optional()
           .describe(
-            'Free-text place name, e.g. "Austin, TX" -- resolved via geocoding to the best ' +
-              "match. Omit if latitude/longitude are given.",
+            'Free-text place name or street address, e.g. "Austin, TX" or "1600 Pennsylvania Ave NW" ' +
+              "-- resolved via geocoding to the best match. Omit if latitude/longitude are given.",
           ),
         latitude: z.number().min(-90).max(90).optional(),
         longitude: z.number().min(-180).max(180).optional(),
@@ -138,7 +144,7 @@ export function createMcpServer(archiveCache: ArchiveCache): McpServer {
             manual: true,
           };
         } else if (locationQuery) {
-          const matches = await searchLocations(locationQuery, apiKey);
+          const matches = await searchAllLocations(locationQuery, apiKey);
           if (matches.length === 0) {
             return textResult(`No location found matching "${locationQuery}".`, true);
           }

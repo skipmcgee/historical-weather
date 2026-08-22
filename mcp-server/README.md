@@ -2,9 +2,10 @@
 
 An MCP server exposing the same historical-weather lookup as the [Historical
 Weather Flutter app](../README.md) — Open-Meteo geocoding + archive, median/average
-aggregation, metric/imperial units — as tools an LLM client (Claude Code, Claude
-Desktop, etc.) can call directly. This is a standalone TypeScript reimplementation of the
-app's domain logic (`lib/services/open_meteo_service.dart`,
+aggregation, metric/imperial units, plus street-address lookup via OpenStreetMap's
+Nominatim — as tools an LLM client (Claude Code, Claude Desktop, etc.) can call directly.
+This is a standalone TypeScript reimplementation of the app's domain logic
+(`lib/services/open_meteo_service.dart`, `lib/services/nominatim_service.dart`,
 `lib/services/weather_aggregator.dart`, `lib/models/*.dart`), not a wrapper around the
 Flutter app — MCP's official SDKs don't cover Dart.
 
@@ -87,9 +88,11 @@ Flutter app's Settings API key field. Without it, the free public API is used.
 
 ### `search_locations`
 
-Search Open-Meteo's geocoding database for places matching a free-text query. Returns
-candidate matches (name, admin1, country, latitude, longitude, timezone) to disambiguate
-before calling `get_historical_weather`.
+Search for places matching a free-text query -- a city/place name (via Open-Meteo's
+geocoding database) or a specific street address or point of interest (via
+OpenStreetMap's Nominatim) -- combining and de-duplicating results from both. Returns
+candidate matches (name, admin1, country, latitude, longitude) to disambiguate before
+calling `get_historical_weather`.
 
 ### `get_historical_weather`
 
@@ -98,7 +101,7 @@ summary. Returns the same JSON shape as the Flutter app's copy-paste JSON panel.
 
 | Param | Type | Default | Notes |
 |---|---|---|---|
-| `location` | string | — | Free-text place name, resolved via geocoding to the best match. Omit if `latitude`/`longitude` are given. |
+| `location` | string | — | Free-text place name or street address, resolved via geocoding to the best match. Omit if `latitude`/`longitude` are given. |
 | `latitude`, `longitude` | number | — | Explicit coordinates. Required if `location` is omitted. |
 | `start_date`, `end_date` | string (`YYYY-MM-DD`) | — | `start_date` must be on/after `1940-01-01`; `end_date` can't be in the future. |
 | `method` | `"median" \| "average"` | `"median"` | Median resists a few extreme days skewing the result; average is the literal mean. Totals (precipitation/snowfall/ET0) are always sums; wind direction is always a circular mean — neither is affected by this choice. |

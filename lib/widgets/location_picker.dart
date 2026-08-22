@@ -3,21 +3,26 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/location.dart';
+import '../services/location_search.dart';
+import '../services/nominatim_service.dart';
 import '../services/open_meteo_service.dart';
 import 'glass_card.dart';
 
-/// Lets the user either search for a place by name (via Open-Meteo
-/// geocoding, live as they type) or expand a section to type exact
-/// latitude/longitude.
+/// Lets the user either search for a place, or a specific street address
+/// (live as they type, combining Open-Meteo's city/place geocoding with
+/// OpenStreetMap's Nominatim for addresses -- see [searchAllLocations]), or
+/// expand a section to type exact latitude/longitude.
 class LocationPicker extends StatefulWidget {
   const LocationPicker({
     super.key,
     required this.service,
+    required this.nominatimService,
     required this.selected,
     required this.onSelected,
   });
 
   final OpenMeteoService service;
+  final NominatimService nominatimService;
   final Location? selected;
   final ValueChanged<Location> onSelected;
 
@@ -85,7 +90,11 @@ class _LocationPickerState extends State<LocationPicker> {
     });
 
     try {
-      final results = await widget.service.searchLocations(query);
+      final results = await searchAllLocations(
+        openMeteo: widget.service,
+        nominatim: widget.nominatimService,
+        query: query,
+      );
       if (!mounted || generation != _requestGeneration) return;
       setState(() {
         _results = results;
@@ -142,8 +151,8 @@ class _LocationPickerState extends State<LocationPicker> {
         TextField(
           controller: _searchController,
           decoration: InputDecoration(
-            labelText: 'Search for a city or place',
-            hintText: 'e.g. Austin, TX',
+            labelText: 'Search for a city, place, or address',
+            hintText: 'e.g. Austin, TX or 1600 Pennsylvania Ave NW',
             suffixIcon: _searching
                 ? const Padding(
                     padding: EdgeInsets.all(14),
