@@ -2,7 +2,7 @@
   "name": "historical-weather-mcp-server",
   "version": "0.1.0",
   "private": true,
-  "description": "MCP server exposing the same historical-weather lookup (Open-Meteo geocoding + archive, median/average aggregation, metric/imperial units) as the Historical Weather Flutter app.",
+  "description": "MCP server exposing the same historical-weather lookup (Open-Meteo geocoding + archive, Nominatim address search, median/average aggregation, metric/imperial units) as the Historical Weather Flutter app.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
