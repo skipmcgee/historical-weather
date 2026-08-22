@@ -139,11 +139,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump();
 
-    // Matches only a result list item's label (the search field's own text
-    // is just "Austin", too short to contain "Austin, Texas") -- exactly
-    // one match confirms the two near-identical Austin entries collapsed
-    // into one instead of both showing up.
-    expect(find.textContaining('Austin, Texas'), findsOneWidget);
+    // Exact match on Open-Meteo's label -- the East Cesar Chavez Street
+    // result's own label also *contains* "Austin, Texas" as a substring
+    // (its admin1 folds the city in), so an exact match is needed to
+    // confirm the two near-identical Austin entries collapsed into one
+    // instead of both showing up, without that other result confusing the
+    // count.
+    expect(find.text('Austin, Texas, US'), findsOneWidget);
     expect(find.textContaining('East Cesar Chavez Street'), findsOneWidget);
   });
 
