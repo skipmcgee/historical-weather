@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:historical_weather/models/location.dart';
 import 'package:historical_weather/services/open_meteo_service.dart';
@@ -110,5 +112,32 @@ void main() {
       () => service.searchLocations('Austin'),
       throwsA(isA<OpenMeteoException>()),
     );
+  });
+
+  test('wraps a request that never responds in a friendly timeout message', () {
+    // Fast-forwards virtual time past the 120s request timeout instead of
+    // actually waiting 120 real seconds.
+    fakeAsync((async) {
+      final client = MockClient((request) => Completer<http.Response>().future);
+      final service = OpenMeteoService(client: client);
+
+      OpenMeteoException? caught;
+      unawaited(Future(() async {
+        try {
+          await service.fetchDailyArchive(
+            location: location,
+            startDate: DateTime(2020, 1, 1),
+            endDate: DateTime(2020, 1, 2),
+          );
+        } on OpenMeteoException catch (e) {
+          caught = e;
+        }
+      }));
+
+      async.elapse(const Duration(seconds: 121));
+
+      expect(caught, isNotNull);
+      expect(caught!.message, contains('took too long to respond'));
+    });
   });
 }

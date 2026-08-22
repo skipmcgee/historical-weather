@@ -113,7 +113,13 @@ class ArchiveCacheService {
     for (final entry in daily.entries) {
       final list = entry.value;
       if (list is List) {
-        sliced[entry.key] = [for (final i in indices) list[i]];
+        // A per-variable array can be shorter than `time` (a sparse or
+        // not-yet-processed variable near the present day) -- index past
+        // its end as null rather than letting a RangeError escape, keeping
+        // every sliced array the same length as `indices` so downstream
+        // code (which already treats a null/missing day as "no data for
+        // that day") stays aligned.
+        sliced[entry.key] = [for (final i in indices) i < list.length ? list[i] : null];
       } else {
         sliced[entry.key] = entry.value;
       }
