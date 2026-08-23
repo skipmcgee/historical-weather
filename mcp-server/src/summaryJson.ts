@@ -67,7 +67,9 @@ export function weatherSummaryToJson(
     wind: {
       speed_unit: windSpeedUnit(u),
       max_speed: round(convertKmh(u, summary.windSpeedMaxKmh), 1),
+      min_speed: round(convertKmh(u, summary.windSpeedMinKmh), 1),
       max_gusts: round(convertKmh(u, summary.windGustsMaxKmh), 1),
+      min_gusts: round(convertKmh(u, summary.windGustsMinKmh), 1),
       // Always a circular mean, regardless of `method`; degrees are
       // unit-system-agnostic.
       direction_deg: round(summary.windDirectionDeg, 0),

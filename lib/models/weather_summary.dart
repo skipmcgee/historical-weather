@@ -37,7 +37,9 @@ class WeatherSummary {
     this.totalRainMm,
     this.totalSnowfallCm,
     this.windSpeedMaxKmh,
+    this.windSpeedMinKmh,
     this.windGustsMaxKmh,
+    this.windGustsMinKmh,
     this.windDirectionDeg,
     this.relativeHumidityPercent,
     this.dewPointC,
@@ -69,7 +71,9 @@ class WeatherSummary {
   final double? totalRainMm;
   final double? totalSnowfallCm;
   final double? windSpeedMaxKmh;
+  final double? windSpeedMinKmh;
   final double? windGustsMaxKmh;
+  final double? windGustsMinKmh;
   final double? windDirectionDeg;
   final double? relativeHumidityPercent;
   final double? dewPointC;
@@ -98,7 +102,9 @@ class WeatherSummary {
     totalRainMm,
     totalSnowfallCm,
     windSpeedMaxKmh,
+    windSpeedMinKmh,
     windGustsMaxKmh,
+    windGustsMinKmh,
     windDirectionDeg,
     relativeHumidityPercent,
     dewPointC,
@@ -167,7 +173,9 @@ class WeatherSummary {
       'wind': {
         'speed_unit': u.windSpeedUnit,
         'max_speed': _round(u.convertKmh(windSpeedMaxKmh), 1),
+        'min_speed': _round(u.convertKmh(windSpeedMinKmh), 1),
         'max_gusts': _round(u.convertKmh(windGustsMaxKmh), 1),
+        'min_gusts': _round(u.convertKmh(windGustsMinKmh), 1),
         // Always a circular mean, regardless of `method`; degrees are
         // unit-system-agnostic.
         'direction_deg': _round(windDirectionDeg, 0),

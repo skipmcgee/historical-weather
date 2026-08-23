@@ -40,7 +40,9 @@ export interface WeatherSummary {
   totalRainMm: number | null;
   totalSnowfallCm: number | null;
   windSpeedMaxKmh: number | null;
+  windSpeedMinKmh: number | null;
   windGustsMaxKmh: number | null;
+  windGustsMinKmh: number | null;
   windDirectionDeg: number | null;
   relativeHumidityPercent: number | null;
   dewPointC: number | null;

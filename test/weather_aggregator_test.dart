@@ -22,7 +22,9 @@ void main() {
         'rain_sum': [1.0, 0.0, 3.0],
         'snowfall_sum': [0.0, 0.0, 0.0],
         'wind_speed_10m_max': [10.0, 20.0, 30.0],
+        'wind_speed_10m_min': [1.0, 2.0, 3.0],
         'wind_gusts_10m_max': [15.0, 25.0, 35.0],
+        'wind_gusts_10m_min': [5.0, 6.0, 7.0],
         'wind_direction_10m_dominant': [80.0, 90.0, 100.0],
         'relative_humidity_2m_mean': [70.0, 80.0, 90.0],
         'shortwave_radiation_sum': [5.0, 6.0, 7.0],
@@ -41,7 +43,9 @@ void main() {
     expect(summary.totalRainMm, closeTo(4.0, 1e-9));
     expect(summary.totalSnowfallCm, closeTo(0.0, 1e-9));
     expect(summary.windSpeedMaxKmh, closeTo(20.0, 1e-9));
+    expect(summary.windSpeedMinKmh, closeTo(2.0, 1e-9));
     expect(summary.windGustsMaxKmh, closeTo(25.0, 1e-9));
+    expect(summary.windGustsMinKmh, closeTo(6.0, 1e-9));
     // [80, 90, 100] is symmetric around 90 -> circular mean is exactly 90.
     expect(summary.windDirectionDeg, closeTo(90.0, 1e-6));
     expect(summary.relativeHumidityPercent, closeTo(80.0, 1e-9));

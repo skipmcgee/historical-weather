@@ -19,7 +19,9 @@ function buildSummary(method: AggregationMethod): WeatherSummary {
     totalRainMm: null,
     totalSnowfallCm: 2.54,
     windSpeedMaxKmh: 100.0,
+    windSpeedMinKmh: 10.0,
     windGustsMaxKmh: null,
+    windGustsMinKmh: null,
     windDirectionDeg: 90.0,
     relativeHumidityPercent: null,
     dewPointC: null,
@@ -50,6 +52,7 @@ describe("weatherSummaryToJson", () => {
     expect(json.precipitation.total).toBeCloseTo(25.4, 9);
     expect(json.wind.speed_unit).toBe("km/h");
     expect(json.wind.max_speed).toBeCloseTo(100.0, 9);
+    expect(json.wind.min_speed).toBeCloseTo(10.0, 9);
     // Volumetric soil moisture is unit-agnostic.
     expect(json.soil.moisture_m3_m3["0_to_7cm"]).toBeCloseTo(0.32, 9);
   });
@@ -68,6 +71,7 @@ describe("weatherSummaryToJson", () => {
     expect(json.snowfall.total).toBeCloseTo(1.0, 9); // 2.54cm
     expect(json.wind.speed_unit).toBe("mph");
     expect(json.wind.max_speed).toBeCloseTo(62.1, 1); // 100km/h
+    expect(json.wind.min_speed).toBeCloseTo(6.2, 1); // 10km/h
     expect(json.atmosphere.surface_pressure_unit).toBe("inHg");
     expect(json.atmosphere.surface_pressure).toBeCloseTo(29.92, 2);
     // Wind direction (degrees) and soil moisture (m3/m3) are never converted.

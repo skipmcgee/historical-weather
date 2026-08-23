@@ -26,7 +26,9 @@ WeatherSummary aggregateDailyArchive({
   final rain = _doubles(daily['rain_sum']);
   final snowfall = _doubles(daily['snowfall_sum']);
   final windSpeedMax = _doubles(daily['wind_speed_10m_max']);
+  final windSpeedMin = _doubles(daily['wind_speed_10m_min']);
   final windGustsMax = _doubles(daily['wind_gusts_10m_max']);
+  final windGustsMin = _doubles(daily['wind_gusts_10m_min']);
   final windDirection = _doubles(daily['wind_direction_10m_dominant']);
   final relativeHumidity = _doubles(daily['relative_humidity_2m_mean']);
   final dewPoint = _doubles(daily['dew_point_2m_mean']);
@@ -66,7 +68,9 @@ WeatherSummary aggregateDailyArchive({
     totalRainMm: _sumOrNull(rain),
     totalSnowfallCm: _sumOrNull(snowfall),
     windSpeedMaxKmh: central(windSpeedMax),
+    windSpeedMinKmh: central(windSpeedMin),
     windGustsMaxKmh: central(windGustsMax),
+    windGustsMinKmh: central(windGustsMin),
     windDirectionDeg: _circularMeanDegrees(windDirection),
     relativeHumidityPercent: central(relativeHumidity),
     dewPointC: central(dewPoint),

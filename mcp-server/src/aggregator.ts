@@ -29,7 +29,9 @@ export function aggregateDailyArchive(params: {
   const rain = doubles(daily.rain_sum);
   const snowfall = doubles(daily.snowfall_sum);
   const windSpeedMax = doubles(daily.wind_speed_10m_max);
+  const windSpeedMin = doubles(daily.wind_speed_10m_min);
   const windGustsMax = doubles(daily.wind_gusts_10m_max);
+  const windGustsMin = doubles(daily.wind_gusts_10m_min);
   const windDirection = doubles(daily.wind_direction_10m_dominant);
   const relativeHumidity = doubles(daily.relative_humidity_2m_mean);
   const dewPoint = doubles(daily.dew_point_2m_mean);
@@ -68,7 +70,9 @@ export function aggregateDailyArchive(params: {
     totalRainMm: sumOrNull(rain),
     totalSnowfallCm: sumOrNull(snowfall),
     windSpeedMaxKmh: c(windSpeedMax),
+    windSpeedMinKmh: c(windSpeedMin),
     windGustsMaxKmh: c(windGustsMax),
+    windGustsMinKmh: c(windGustsMin),
     windDirectionDeg: circularMeanDegrees(windDirection),
     relativeHumidityPercent: c(relativeHumidity),
     dewPointC: c(dewPoint),
@@ -100,7 +104,9 @@ export function hasAnyData(summary: WeatherSummary): boolean {
     summary.totalRainMm,
     summary.totalSnowfallCm,
     summary.windSpeedMaxKmh,
+    summary.windSpeedMinKmh,
     summary.windGustsMaxKmh,
+    summary.windGustsMinKmh,
     summary.windDirectionDeg,
     summary.relativeHumidityPercent,
     summary.dewPointC,

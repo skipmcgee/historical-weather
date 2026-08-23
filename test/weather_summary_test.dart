@@ -20,6 +20,9 @@ void main() {
       totalPrecipitationMm: 25.4,
       precipitationPerDayMm: 0.82,
       windSpeedMaxKmh: 100.0,
+      windSpeedMinKmh: 10.0,
+      windGustsMaxKmh: 120.0,
+      windGustsMinKmh: 15.0,
       surfacePressureHpa: 1013.25,
       totalSnowfallCm: 2.54,
       soilMoisture0To7cm: 0.32,
@@ -39,6 +42,9 @@ void main() {
     expect(json['precipitation']['total'], closeTo(25.4, 1e-9));
     expect(json['wind']['speed_unit'], 'km/h');
     expect(json['wind']['max_speed'], closeTo(100.0, 1e-9));
+    expect(json['wind']['min_speed'], closeTo(10.0, 1e-9));
+    expect(json['wind']['max_gusts'], closeTo(120.0, 1e-9));
+    expect(json['wind']['min_gusts'], closeTo(15.0, 1e-9));
     // Volumetric soil moisture is unit-agnostic.
     expect(json['soil']['moisture_m3_m3']['0_to_7cm'], closeTo(0.32, 1e-9));
   });
@@ -57,6 +63,9 @@ void main() {
     expect(json['snowfall']['total'], closeTo(1.0, 1e-9)); // 2.54cm
     expect(json['wind']['speed_unit'], 'mph');
     expect(json['wind']['max_speed'], closeTo(62.1, 1e-1)); // 100km/h
+    expect(json['wind']['min_speed'], closeTo(6.2, 1e-1)); // 10km/h
+    expect(json['wind']['max_gusts'], closeTo(74.6, 1e-1)); // 120km/h
+    expect(json['wind']['min_gusts'], closeTo(9.3, 1e-1)); // 15km/h
     expect(json['atmosphere']['surface_pressure_unit'], 'inHg');
     expect(json['atmosphere']['surface_pressure'], closeTo(29.92, 1e-2));
     // Wind direction (degrees) and soil moisture (m3/m3) are never converted.
