@@ -83,10 +83,17 @@ class WeatherSummaryView extends StatelessWidget {
 
     final wind = <_Metric>[
       (Icons.air, '$m max wind speed', kmh(summary.windSpeedMaxKmh), scheme.tertiary),
+      (Icons.air, '$m min wind speed', kmh(summary.windSpeedMinKmh), scheme.tertiary),
       (
         Icons.cyclone,
         '$m max wind gusts',
         kmh(summary.windGustsMaxKmh),
+        scheme.tertiary,
+      ),
+      (
+        Icons.cyclone,
+        '$m min wind gusts',
+        kmh(summary.windGustsMinKmh),
         scheme.tertiary,
       ),
       (
