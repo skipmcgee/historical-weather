@@ -7,9 +7,7 @@ copy-pasteable JSON. Named after Aeolus, the Greek keeper of the winds, with a
 matching visual identity (stormy indigo/gold theme, an animated wind-spiral
 background, custom app icons).
 
-Targets **web**, **macOS**, **iOS**, and **Linux** from a single codebase. A companion
-[MCP server](mcp-server/) exposes the same lookup as tools for LLM clients (Claude
-Code, Claude Desktop, etc.) — see [mcp-server/README.md](mcp-server/README.md).
+Targets **web**, **macOS**, **iOS**, and **Linux** from a single codebase.
 
 ## Features
 
@@ -72,7 +70,6 @@ lib/
   theme/       AeolusTheme (color palette, typography, component themes)
 test/          Mirrors lib/ 1:1 for the pure Dart logic (aggregator, units, settings,
                cache), plus widget tests for HomeScreen/SettingsScreen
-mcp-server/    Standalone TypeScript MCP server -- see its own README
 ```
 
 ## CI/CD
@@ -93,22 +90,8 @@ Notes on the build artifacts:
   Testing it needs either a Simulator build (`flutter build ios --simulator`) or real Apple
   signing credentials wired up as repo secrets.
 
-`.github/workflows/mcp-server.yml` is a separate, path-filtered pipeline
-(`mcp-server/**` only) for the MCP server: `npm ci`, build, test on Node 24.
-
-`.github/dependabot.yml` opens a weekly pull request for outdated pub packages, npm
-packages (in `mcp-server/`), and GitHub Actions versions. A `dependabot-merge` job in
-`release.yml` auto-approves and squash-merges Dependabot's patch/minor updates once every
-build job passes; major version bumps are left as regular PRs for manual review, since
-those are more likely to carry breaking changes that compile/test cleanly but behave
-differently at runtime.
-
-## MCP server
-
-[`mcp-server/`](mcp-server/) is a standalone TypeScript reimplementation of this app's
-domain logic — not a wrapper around the Flutter app, since MCP's official SDKs don't cover
-Dart — exposing the same location search and historical-weather lookup as `search_locations`
-and `get_historical_weather` tools for LLM clients. Same median/average and metric/imperial
-options, same 1940-01-01 floor, same JSON output shape as this app's copy-paste panel, plus
-its own in-memory response cache. See [mcp-server/README.md](mcp-server/README.md) for setup
-(Claude Code, Claude Desktop), tool docs, and current hosting status.
+`.github/dependabot.yml` opens a weekly pull request for outdated pub packages and GitHub
+Actions versions. A `dependabot-merge` job in `release.yml` auto-approves and squash-merges
+Dependabot's patch/minor updates once every build job passes; major version bumps are left
+as regular PRs for manual review, since those are more likely to carry breaking changes that
+compile/test cleanly but behave differently at runtime.
